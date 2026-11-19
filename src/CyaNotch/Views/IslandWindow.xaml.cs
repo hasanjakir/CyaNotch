@@ -129,8 +129,24 @@ public partial class IslandWindow : Window
         // Per-pixel transparency on a normal (non-layered) window, so the window region and blur work together.
         if (_source?.CompositionTarget != null) _source.CompositionTarget.BackgroundColor = Colors.Transparent;
         Native.PrepareGlassWindow(_hwnd);
-        Native.SetBlur(_hwnd, Themes.Current.Glossy);
+        ApplyBackdrop();
         RegisterMicHotkey();
+    }
+
+    /// <summary>
+    /// Lets the desktop show through on Glass/Acrylic themes. Over fullscreen games the island turns
+    /// solid black instead, so it never reads the game's frames.
+    /// </summary>
+    private void ApplyBackdrop()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        var t = Themes.Current;
+        var solidForGame = _mode == Mode.Strip && t.SeeThrough;
+        var tint = (uint)(0x30 << 24 | t.Surface.R << 16 | t.Surface.G << 8 | t.Surface.B);
+        Native.SetBackdrop(_hwnd, solidForGame ? Backdrop.Solid : t.Backdrop, tint);
+        Native.HideFromCapture(_hwnd, Settings.Current.HideFromCapture);
+        if (solidForGame) Island.Background = Brushes.Black;
+        else Island.SetResourceReference(Border.BackgroundProperty, "SurfaceBrush");
     }
 
     private void RegisterMicHotkey()
@@ -287,7 +303,7 @@ public partial class IslandWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             Themes.Apply(Settings.Current.Theme);
-            Native.SetBlur(_hwnd, Themes.Current.Glossy);
+            ApplyBackdrop();
             RegisterMicHotkey();
             ScheduleGlance();
             ApplyShape(animate: true);
@@ -411,6 +427,7 @@ public partial class IslandWindow : Window
             Strip.Visibility = Visibility.Collapsed;
         }
         _mode = Mode.Expanded;
+        ApplyBackdrop();
         UpdateVisibility();
         Fade(Compact, false, 90 * Speed);
         Fade(Peek, false, 90 * Speed);
@@ -669,6 +686,7 @@ public partial class IslandWindow : Window
         _mode = Mode.Strip;
         Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out var pid);
         App.Game.Track((int)pid);
+        ApplyBackdrop();
         Fade(Compact, false, 80 * Speed);
         Fade(Strip, true, 160 * Speed, 100 * Speed);
         AnimateTo(StripSize(), bouncy: false);
@@ -680,6 +698,7 @@ public partial class IslandWindow : Window
     {
         App.Game.StopTracking();
         _mode = Mode.Compact;
+        ApplyBackdrop();
         Fade(Strip, false, 80 * Speed);
         Fade(Compact, true, 160 * Speed, 100 * Speed);
         AnimateTo(CompactSize(), bouncy: false);
