@@ -35,6 +35,14 @@ public sealed class VisualizerBars : FrameworkElement
     /// The column count follows the width; <see cref="DotRows"/> sets the height in dots.
     /// </summary>
     public bool Dots { get; set; }
+
+    /// <summary>Empty space left in the middle (for the song title), in DIPs. 0 = bars all the way across.</summary>
+    public double GapWidth
+    {
+        get => _gap;
+        set { if (Math.Abs(_gap - value) > 0.5) { _gap = value; InvalidateVisual(); } }
+    }
+    private double _gap;
     public int DotRows { get; set; } = 4;
 
     public int DesiredBands => Dots
@@ -115,6 +123,7 @@ public sealed class VisualizerBars : FrameworkElement
             var v = levels[bandIndex];
             var bh = Math.Max(minH, v * h);
             var x = i * slot + (slot - barW) / 2;
+            if (_gap > 0 && Math.Abs(x + barW / 2 - w / 2) < _gap / 2) continue;
             var y = Mirrored ? (h - bh) / 2 : h - bh;
             dc.DrawRoundedRectangle(brush, null, new Rect(x, y, barW, bh), radius, radius);
         }

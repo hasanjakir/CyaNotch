@@ -217,7 +217,8 @@
 
                     <!-- centre: time, title, timer -->
                     <TextBlock x:Name="CompactText" Grid.Column="1" Margin="8,0" VerticalAlignment="Center" HorizontalAlignment="Center"
-                               FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="12:00"/>
+                               FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="12:00"
+                               SizeChanged="CompactText_SizeChanged"/>
 
                     <!-- right: equaliser / mic / call timer -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
