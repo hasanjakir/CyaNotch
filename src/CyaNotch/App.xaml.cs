@@ -12,6 +12,7 @@ namespace CyaNotch;
 public partial class App : Application
 {
     private Mutex? _single;
+    private bool _ownsMutex;
     private System.Windows.Forms.NotifyIcon? _tray;
     private IslandWindow? _island;
     private SettingsWindow? _settings;
@@ -35,11 +36,12 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         _single = new Mutex(true, @"Local\CyaNotch.SingleInstance", out var isNew);
-        if (!isNew)
+        if (!isNew && !ReplaceRunningCopy())
         {
             Shutdown();
             return;
         }
+        _ownsMutex = true;
 
         DispatcherUnhandledException += OnUiException;
         AppDomain.CurrentDomain.UnhandledException += (_, a) => Log.Error("Unhandled", a.ExceptionObject as Exception);
@@ -60,6 +62,45 @@ public partial class App : Application
 
         CreateTray();
         Log.Info("CyaNotch started");
+    }
+
+    /// <summary>
+    /// Another CyaNotch is already running (often an older build). Offer to close it and carry on
+    /// with this one, instead of exiting silently.
+    /// </summary>
+    private bool ReplaceRunningCopy()
+    {
+        var answer = MessageBox.Show(
+            "CyaNotch is already running.\n\nClose the running copy and start this one instead?",
+            "CyaNotch", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes);
+        if (answer != MessageBoxResult.Yes) return false;
+
+        var me = global::System.Diagnostics.Process.GetCurrentProcess();
+        foreach (var p in global::System.Diagnostics.Process.GetProcessesByName(me.ProcessName))
+        {
+            if (p.Id == me.Id) continue;
+            try
+            {
+                p.Kill();
+                p.WaitForExit(5000);
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Could not close the running copy", ex);
+            }
+        }
+
+        // Take over the single-instance lock now that the old copy is gone.
+        try
+        {
+            if (_single!.WaitOne(TimeSpan.FromSeconds(5))) return true;
+        }
+        catch (AbandonedMutexException)
+        {
+            return true; // the old copy was killed while holding it; we own it now
+        }
+        MessageBox.Show("Couldn't close the running copy. Quit it from the tray icon and try again.", "CyaNotch");
+        return false;
     }
 
     private void OnUiException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -147,7 +188,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _single?.ReleaseMutex();
+        if (_ownsMutex) _single?.ReleaseMutex();
         base.OnExit(e);
     }
 }
