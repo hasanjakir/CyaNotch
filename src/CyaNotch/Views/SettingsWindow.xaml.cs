@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using CyaNotch.Core;
@@ -18,6 +19,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         Load();
         _loading = false;
+        Closed += (_, _) => PvViz.Active = false;
     }
 
     private void Load()
@@ -32,10 +34,11 @@ public partial class SettingsWindow : Window
                 GroupName = "Theme",
                 IsChecked = t.Name == s.Theme,
                 Tag = t.Name,
-                Margin = new Thickness(0, 0, 10, 8),
+                Style = (Style)FindResource("Swatch"),
+                Margin = new Thickness(0, 0, 6, 6),
                 Content = ThemeSwatch(t),
             };
-            rb.Checked += (_, _) => { if (!_loading) { Settings.Current.Theme = t.Name; Settings.Save(); } };
+            rb.Checked += (_, _) => { if (!_loading) { Settings.Current.Theme = t.Name; Settings.Save(); UpdatePreview(); } };
             ThemePanel.Children.Add(rb);
         }
 
@@ -98,11 +101,15 @@ public partial class SettingsWindow : Window
         WidgetButtons.Children.Clear();
         foreach (var k in WidgetWindow.Kinds)
         {
-            var b = new Button { Content = $"Pin {k.ToLowerInvariant()}", Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 6, 6) };
+            var b = new Button { Content = $"Pin {k.ToLowerInvariant()}", Style = (Style)FindResource("PillButton"), Margin = new Thickness(0, 0, 6, 6) };
             b.Click += (_, _) => WidgetWindow.PinNew(k);
             WidgetButtons.Children.Add(b);
         }
         MicHotkey.IsChecked = s.MicMuteHotkey;
+        LauncherKeys.IsChecked = s.LauncherHotkeys;
+        AgentsOn.IsChecked = s.AgentsEnabled;
+        var ver = typeof(SettingsWindow).Assembly.GetName().Version;
+        VersionText.Text = ver == null ? "" : $"v{ver.Major}.{ver.Minor}.{ver.Build}";
         ShowNotes.IsChecked = s.ShowNotifications;
         Clock24.IsChecked = s.Use24Hour;
         Fahrenheit.IsChecked = s.UseFahrenheit;
@@ -113,6 +120,7 @@ public partial class SettingsWindow : Window
         ClockZone.ItemsSource = TimeZoneInfo.GetSystemTimeZones();
         RefreshClocks();
         UpdateSliderLabels();
+        UpdatePreview();
     }
 
     /// <summary>A round colour button; "Theme" (no colour) keeps each theme's own accent.</summary>
@@ -130,7 +138,8 @@ public partial class SettingsWindow : Window
             GroupName = "Accent",
             IsChecked = name == current,
             ToolTip = name == "Theme" ? "Theme's own colour" : name,
-            Margin = new Thickness(0, 0, 6, 4),
+            Style = (Style)FindResource("Swatch"),
+            Margin = new Thickness(0, 0, 4, 4),
             Content = dot,
         };
         rb.Checked += (_, _) => { if (!_loading) { Settings.Current.Accent = name; Settings.Save(); } };
@@ -267,6 +276,8 @@ public partial class SettingsWindow : Window
         s.LyricsEnabled = LyricsOn.IsChecked == true;
         s.LyricsInPill = LyricsPill.IsChecked == true;
         s.MicMuteHotkey = MicHotkey.IsChecked == true;
+        s.LauncherHotkeys = LauncherKeys.IsChecked == true;
+        s.AgentsEnabled = AgentsOn.IsChecked == true;
         s.AutoHide = AutoHide.IsChecked == true;
         s.ShowWhilePlaying = ShowPlaying.IsChecked == true;
         s.StatsGlance = Glance.IsChecked == true;
@@ -283,6 +294,136 @@ public partial class SettingsWindow : Window
         }
         App.Media.Reselect();
         Settings.Save();
+        UpdatePreview();
+    }
+
+    // ---- window chrome, sidebar, search and live preview ----
+
+    private bool _skipScrollSync;
+
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void Nav_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not string key || FindName(key) is not FrameworkElement sec) return;
+        if (sec.Visibility != Visibility.Visible) return;
+        _skipScrollSync = true;
+        var y = sec.TranslatePoint(new Point(0, 0), Scroller).Y;
+        Scroller.ScrollToVerticalOffset(Math.Max(0, Scroller.VerticalOffset + y - 4));
+    }
+
+    private void Scroller_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (Sections == null || e.VerticalChange == 0 && e.ExtentHeightChange == 0) return;
+        if (_skipScrollSync) { _skipScrollSync = false; return; }
+        FrameworkElement? current = null;
+        foreach (var sec in SectionPanels())
+        {
+            if (sec.Visibility != Visibility.Visible) continue;
+            current ??= sec;
+            if (sec.TranslatePoint(new Point(0, 0), Scroller).Y <= 60) current = sec;
+        }
+        // at the very bottom, the last section counts even if it never reaches the top
+        if (Scroller.VerticalOffset >= Scroller.ScrollableHeight - 1)
+            current = SectionPanels().LastOrDefault(x => x.Visibility == Visibility.Visible) ?? current;
+        if (current != null && FindName("Nav" + current.Name[3..]) is RadioButton nav) nav.IsChecked = true;
+    }
+
+    private System.Collections.Generic.IEnumerable<StackPanel> SectionPanels() =>
+        Sections.Children.OfType<StackPanel>().Where(p => p.Name.StartsWith("Sec"));
+
+    private void Search_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (Sections == null) return;
+        var q = Search.Text.Trim();
+        SearchHint.Visibility = q.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var rowStyle = (Style)FindResource("Row");
+        var any = false;
+        foreach (var sec in SectionPanels())
+        {
+            var hits = 0;
+            foreach (UIElement child in sec.Children)
+            {
+                if (child is not FrameworkElement el) continue;
+                var isRow = el is CheckBox || el is Border b && b.Style == rowStyle;
+                if (q.Length == 0) { el.Visibility = Visibility.Visible; continue; }
+                if (isRow)
+                {
+                    var match = TextOf(el).Contains(q, StringComparison.OrdinalIgnoreCase)
+                             || ((string)sec.Tag).Contains(q, StringComparison.OrdinalIgnoreCase);
+                    el.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
+                    if (match) hits++;
+                }
+                else
+                {
+                    // the kicker and section title stay; group headers and loose extras hide while searching
+                    var keep = el is TextBlock tb && (tb.Style == (Style)FindResource("SecTitle") || tb.Style == (Style)FindResource("Kicker"));
+                    el.Visibility = keep ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+            var show = q.Length == 0 || hits > 0;
+            sec.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            any |= show;
+        }
+        NoResults.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+        Scroller.ScrollToTop();
+    }
+
+    /// <summary>All the words a row shows, for search: labels, descriptions and option names.</summary>
+    private static string TextOf(DependencyObject root)
+    {
+        var sb = new System.Text.StringBuilder();
+        void Walk(object o)
+        {
+            switch (o)
+            {
+                case TextBlock tb: sb.Append(tb.Text).Append(' '); break;
+                case string str: sb.Append(str).Append(' '); return;
+            }
+            if (o is FrameworkElement fe && fe.Tag is string tag) sb.Append(tag).Append(' ');
+            if (o is ContentControl cc && cc.Content is string cs) sb.Append(cs).Append(' ');
+            if (o is ComboBox cb) foreach (var it in cb.Items) if (it is ComboBoxItem ci && ci.Content is string s2) sb.Append(s2).Append(' ');
+            if (o is DependencyObject d)
+                foreach (var child in LogicalTreeHelper.GetChildren(d)) Walk(child);
+        }
+        Walk(root);
+        return sb.ToString();
+    }
+
+    private void PvMode_Checked(object sender, RoutedEventArgs e) => UpdatePreview();
+
+    private void PvIsland_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (PvOpenBtn.IsChecked == true) PvRestBtn.IsChecked = true; else PvOpenBtn.IsChecked = true;
+    }
+
+    /// <summary>Draws the mock island the way the real one will look with the current settings.</summary>
+    private void UpdatePreview()
+    {
+        if (PvIsland == null || PvOpen == null || PvResting == null || PvOpenBtn == null) return;
+        var s = Settings.Current;
+        var open = PvOpenBtn.IsChecked == true;
+        var notch = ShapeNotch?.IsChecked == true;
+        var round = (Round?.Value ?? s.Roundness * 100) / 100;
+        PvResting.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+        PvOpen.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+
+        var restW = Math.Clamp((IslandWidth?.Value ?? s.CollapsedWidth) * 0.55, 110, 190);
+        PvIsland.Width = open ? 320 : restW;
+        PvIsland.Height = open ? double.NaN : 30;
+        var r = open ? 6 + 18 * round : 15 * Math.Max(round, 0.2);
+        PvIsland.CornerRadius = notch ? new CornerRadius(0, 0, r, r) : new CornerRadius(r);
+        PvIsland.Margin = new Thickness(0, notch ? 0 : 10, 0, 0);
+        PvIsland.BorderThickness = notch ? new Thickness(1, 0, 1, 1) : new Thickness(1);
+
+        PvProgress.Look = ProgLine?.IsChecked == true ? ProgressStyle.Line
+                        : ProgBar?.IsChecked == true ? ProgressStyle.Bar
+                        : ProgDots?.IsChecked == true ? ProgressStyle.Dots
+                        : ProgGlow?.IsChecked == true ? ProgressStyle.Glow
+                        : ProgWave?.IsChecked == true ? ProgressStyle.Wave : s.ProgressStyle;
+        PvViz.Visibility = VizOff?.IsChecked == true ? Visibility.Hidden : Visibility.Visible;
+        PvViz.Mirrored = VizMirror?.IsChecked == true;
+        PvViz.Active = !open;
     }
 
     private async void SetCity_Click(object sender, RoutedEventArgs e)

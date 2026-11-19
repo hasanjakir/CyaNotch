@@ -1,317 +1,706 @@
 <Window x:Class="CyaNotch.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="CyaNotch Settings" Width="560" Height="680"
-        WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
-        Background="#16171B" FontFamily="{StaticResource UiFont}">
+        xmlns:local="clr-namespace:CyaNotch.Views"
+        Title="CyaNotch Settings" Width="940" Height="680" MinWidth="760" MinHeight="480"
+        WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
+        Background="#0B0B0D" FontFamily="{StaticResource UiFont}">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="46" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
     <Window.Resources>
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#F2F3F5"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
-        <Style x:Key="H" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-            <Setter Property="FontSize" Value="12"/>
+        <Style x:Key="Kicker" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#7C808A"/>
+            <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#8F94A0"/>
-            <Setter Property="Margin" Value="2,18,0,6"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
         </Style>
-        <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="#202228"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="14,10"/>
+        <Style x:Key="SecTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
+        <Style x:Key="Group" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#7C808A"/>
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,22,0,2"/>
+        </Style>
+        <Style x:Key="RowTitle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontSize" Value="13.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="Desc" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#9A9EA8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+        <!-- one setting: a line under it, like a list -->
+        <Style x:Key="Row" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#1EFFFFFF"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="0,13"/>
+        </Style>
+        <Style x:Key="SegBox" TargetType="Border">
+            <Setter Property="Background" Value="#16FFFFFF"/>
+            <Setter Property="CornerRadius" Value="11"/>
+            <Setter Property="Padding" Value="3"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style TargetType="RadioButton" BasedOn="{StaticResource Seg}"/>
+
+        <!-- every on/off setting is a row with a switch on the right; Tag is its description -->
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#F2F3F5"/>
-            <Setter Property="Margin" Value="0,5"/>
-            <Setter Property="FontSize" Value="13"/>
-        </Style>
-        <Style TargetType="RadioButton">
-            <Setter Property="Foreground" Value="#F2F3F5"/>
-            <Setter Property="Margin" Value="0,0,16,0"/>
-            <Setter Property="FontSize" Value="13"/>
-        </Style>
-        <Style x:Key="SetField" TargetType="TextBox">
-            <Setter Property="Background" Value="#2A2D34"/>
-            <Setter Property="Foreground" Value="#F2F3F5"/>
-            <Setter Property="CaretBrush" Value="#F2F3F5"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="8,5"/>
-        </Style>
-        <Style x:Key="SetButton" TargetType="Button">
-            <Setter Property="Background" Value="#40E0E8"/>
-            <Setter Property="Foreground" Value="#0B121C"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border Background="Transparent" BorderBrush="#1EFFFFFF" BorderThickness="0,0,0,1" Padding="0,13">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                    <ContentPresenter TextElement.FontSize="13.5" TextElement.FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="DescText" Text="{TemplateBinding Tag}" Foreground="#9A9EA8" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <Border x:Name="Track" Grid.Column="1" Width="40" Height="23" CornerRadius="11.5" Background="#33FFFFFF" VerticalAlignment="Center">
+                                    <Ellipse x:Name="Knob" Width="17" Height="17" Fill="#F2F2F2" HorizontalAlignment="Left" Margin="3,0"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Tag" Value="{x:Null}">
+                                <Setter TargetName="DescText" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="#F2F2F2"/>
+                                <Setter TargetName="Knob" Property="Fill" Value="#111214"/>
+                                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- sidebar entry -->
+        <Style x:Key="NavItem" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#B5B9C2"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Margin" Value="0,1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" CornerRadius="9" Padding="10,8" Background="Transparent">
+                            <Grid>
+                                <ContentPresenter/>
+                                <Ellipse x:Name="Dot" Width="5" Height="5" Fill="{DynamicResource AccentBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#12FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1CFFFFFF"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TextBlock" x:Key="NavText"/>
+
+        <!-- theme and accent swatches -->
+        <Style x:Key="Swatch" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" CornerRadius="12" Padding="4" BorderThickness="1.5" BorderBrush="Transparent">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#12FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#F2F2F2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="22,8,22,22">
-            <TextBlock Text="CyaNotch" FontSize="24" FontWeight="SemiBold" Margin="2,10,0,0"/>
-            <TextBlock Text="Hover the island at the top of your screen to open it." Foreground="#8F94A0" Margin="2,2,0,0"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="46"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <!-- Look -->
-            <TextBlock Style="{StaticResource H}" Text="LOOK"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Text="Theme" Margin="0,2,0,6"/>
-                    <WrapPanel x:Name="ThemePanel"/>
+        <!-- title bar -->
+        <Grid Margin="16,0,8,0">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Width="22" Height="22" CornerRadius="6" Background="#1FFFFFFF">
+                    <TextBlock Text="C" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="CyaNotch" FontSize="14" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="VersionText" FontFamily="Consolas" FontSize="11" Foreground="#7C808A" Margin="8,1,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+            <Button HorizontalAlignment="Right" Width="36" Height="32" WindowChrome.IsHitTestVisibleInChrome="True" Cursor="Hand" Focusable="False" Click="Close_Click" ToolTip="Close">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="8" Background="Transparent">
+                            <TextBlock FontFamily="{StaticResource IconFont}" FontSize="11" Text="&#xE8BB;" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1FFFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+        <Rectangle Height="1" Fill="#16FFFFFF" VerticalAlignment="Bottom"/>
 
-                    <TextBlock Text="Accent" Margin="0,10,0,4"/>
-                    <TextBlock Text="Colours the visualizer, progress and level bars." Foreground="#8F94A0" FontSize="12" Margin="0,0,0,6"/>
-                    <WrapPanel x:Name="AccentPanel"/>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="1"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                    <Grid Margin="0,12,0,0">
-                        <TextBlock Text="Glass tint (Glass, Acrylic, Candy glass)"/>
-                        <TextBlock x:Name="GlassTintText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
-                    </Grid>
-                    <Slider x:Name="GlassTint" Minimum="10" Maximum="90" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
-                    <CheckBox x:Name="HideCapture" Content="Hide the island from screenshots and recordings" Click="Changed"/>
-
-                    <TextBlock Text="Shape" Margin="0,12,0,6"/>
-                    <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="ShapeFloating" Content="Floating island" GroupName="Shape" Checked="Changed"/>
-                        <RadioButton x:Name="ShapeNotch" Content="Notch from top edge" GroupName="Shape" Checked="Changed"/>
-                    </StackPanel>
-
-                    <TextBlock Text="Music visualizer in the pill" Margin="0,12,0,6"/>
-                    <WrapPanel>
-                        <RadioButton x:Name="VizBars" Content="Bars across the pill" GroupName="Viz" Checked="Changed"/>
-                        <RadioButton x:Name="VizTitle" Content="Bars with song title" GroupName="Viz" Checked="Changed"/>
-                        <RadioButton x:Name="VizDots" Content="Small dots" GroupName="Viz" Checked="Changed"/>
-                        <RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/>
-                    </WrapPanel>
-                    <CheckBox x:Name="VizMirror" Content="Grow bars from the middle line" Click="Changed"/>
-
-                    <TextBlock Text="Music progress bar" Margin="0,12,0,6"/>
-                    <WrapPanel>
-                        <RadioButton x:Name="ProgWave" Content="Wave" GroupName="Prog" Checked="Changed"/>
-                        <RadioButton x:Name="ProgLine" Content="Line" GroupName="Prog" Checked="Changed"/>
-                        <RadioButton x:Name="ProgBar" Content="Bar" GroupName="Prog" Checked="Changed"/>
-                        <RadioButton x:Name="ProgDots" Content="Dots" GroupName="Prog" Checked="Changed"/>
-                        <RadioButton x:Name="ProgGlow" Content="Glow" GroupName="Prog" Checked="Changed"/>
-                    </WrapPanel>
-
-                    <TextBlock Text="When the island opens, show" Margin="0,12,0,6"/>
-                    <WrapPanel>
-                        <RadioButton x:Name="OpenLast" Content="The last tab used" GroupName="OpenOn" Checked="Changed"/>
-                        <RadioButton x:Name="OpenMusic" Content="Music" GroupName="OpenOn" Checked="Changed"/>
-                    </WrapPanel>
-                    <CheckBox x:Name="ArtColorsBox" Content="Colour the visualizer and progress from the song's artwork" Click="Changed"/>
-                    <CheckBox x:Name="AmbientBox" Content="Soft artwork glow behind the island (dark themes)" Click="Changed"/>
-
-                    <Grid Margin="0,14,0,0">
-                        <TextBlock Text="Distance from top"/>
-                        <TextBlock x:Name="DistanceText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
-                    </Grid>
-                    <Slider x:Name="Distance" Minimum="0" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
-
-                    <Grid Margin="0,8,0,0">
-                        <TextBlock Text="Island width"/>
-                        <TextBlock x:Name="WidthText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
-                    </Grid>
-                    <Slider x:Name="IslandWidth" Minimum="140" Maximum="320" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
-
-                    <Grid Margin="0,8,0,0">
-                        <TextBlock Text="Animation speed"/>
-                        <TextBlock x:Name="SpeedText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
-                    </Grid>
-                    <Slider x:Name="Speed" Minimum="0.4" Maximum="2" TickFrequency="0.1" IsSnapToTickEnabled="True" IsDirectionReversed="True" ValueChanged="SliderChanged"/>
-
-                    <Grid Margin="0,14,0,0">
-                        <TextBlock Text="Corners"/>
-                        <TextBlock x:Name="RoundText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
-                    </Grid>
-                    <Slider x:Name="Round" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Taskbar -->
-            <TextBlock Style="{StaticResource H}" Text="TASKBAR"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <CheckBox x:Name="TaskbarOn" Content="Replace the Windows taskbar with a bottom notch" Click="Changed"/>
-                    <CheckBox x:Name="TaskbarHideWin" Content="Hide Windows' own taskbar while it's on" Margin="0,8,0,0" Click="Changed"/>
-                    <TextBlock Text="Windows' taskbar comes back when you turn this off or quit CyaNotch." Opacity="0.55" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Island -->
-            <TextBlock Style="{StaticResource H}" Text="ISLAND"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
+            <!-- sidebar: search and sections -->
+            <StackPanel Margin="12,12,12,12">
+                <Border CornerRadius="10" Background="#14FFFFFF" Padding="10,0" Margin="0,0,0,12">
                     <Grid>
-                        <TextBlock Text="At rest, show" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="Resting" HorizontalAlignment="Right" Width="150" SelectionChanged="Changed">
-                            <ComboBoxItem Content="Time"/>
-                            <ComboBoxItem Content="Date"/>
-                            <ComboBoxItem Content="Weather"/>
-                            <ComboBoxItem Content="Battery"/>
-                            <ComboBoxItem Content="CPU"/>
-                            <ComboBoxItem Content="Temperature"/>
-                        </ComboBox>
+                        <TextBlock FontFamily="{StaticResource IconFont}" FontSize="12" Text="&#xE721;" Foreground="#7C808A" VerticalAlignment="Center"/>
+                        <TextBox x:Name="Search" Background="Transparent" BorderThickness="0" Foreground="#F2F3F5" CaretBrush="#F2F3F5"
+                                 Margin="22,0,0,0" Padding="0,8" FontSize="12.5" TextChanged="Search_Changed"/>
+                        <TextBlock x:Name="SearchHint" Text="Search settings" Foreground="#7C808A" FontSize="12.5" Margin="24,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
                     </Grid>
+                </Border>
+                    <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Tag="SecGeneral" GroupName="Nav" IsChecked="True" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE9E9;" Width="26" VerticalAlignment="Center"/><TextBlock Text="General" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavAppearance" Style="{StaticResource NavItem}" Tag="SecAppearance" GroupName="Nav" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE790;" Width="26" VerticalAlignment="Center"/><TextBlock Text="Appearance" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavIsland" Style="{StaticResource NavItem}" Tag="SecIsland" GroupName="Nav" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE737;" Width="26" VerticalAlignment="Center"/><TextBlock Text="Island" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavTaskbar" Style="{StaticResource NavItem}" Tag="SecTaskbar" GroupName="Nav" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE75B;" Width="26" VerticalAlignment="Center"/><TextBlock Text="Taskbar" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavPanels" Style="{StaticResource NavItem}" Tag="SecPanels" GroupName="Nav" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xF0E2;" Width="26" VerticalAlignment="Center"/><TextBlock Text="Panels" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavWidgets" Style="{StaticResource NavItem}" Tag="SecWidgets" GroupName="Nav" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE9D9;" Width="26" VerticalAlignment="Center"/><TextBlock Text="Widgets" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavCalls" Style="{StaticResource NavItem}" Tag="SecCalls" GroupName="Nav" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE7F6;" Width="26" VerticalAlignment="Center"/><TextBlock Text="Calls and keys" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavAgents" Style="{StaticResource NavItem}" Tag="SecAgents" GroupName="Nav" Click="Nav_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE99A;" Width="26" VerticalAlignment="Center"/><TextBlock Text="AI agents" VerticalAlignment="Center"/></StackPanel>
+                    </RadioButton>
+            </StackPanel>
+            <Rectangle Grid.Column="1" Fill="#16FFFFFF"/>
 
-                    <TextBlock Text="Position" Margin="0,12,0,6"/>
-                    <WrapPanel>
-                        <RadioButton x:Name="SideCentre" Content="Centre" GroupName="Side" Checked="Changed"/>
-                        <RadioButton x:Name="SideLeft" Content="Left" GroupName="Side" Checked="Changed"/>
-                        <RadioButton x:Name="SideRight" Content="Right" GroupName="Side" Checked="Changed"/>
-                    </WrapPanel>
-                    <Grid Margin="0,10,0,0">
-                        <TextBlock Text="Screen" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="MonitorBox" HorizontalAlignment="Right" Width="200" SelectionChanged="Changed"/>
-                    </Grid>
+            <!-- content: live preview on top, settings below -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                    <Grid Margin="0,14,0,0">
-                        <TextBlock Text="Open delay"/>
-                        <TextBlock x:Name="DelayText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
-                    </Grid>
-                    <Slider x:Name="Delay" Minimum="0" Maximum="1000" TickFrequency="20" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
-
-                    <Grid Margin="0,10,0,0">
-                        <TextBlock Text="Notifications stay on the island for"/>
-                        <TextBlock x:Name="PeekText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
-                    </Grid>
-                    <Slider x:Name="PeekSecs" Minimum="2" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
-                    <TextBlock Text="Several at once stack up; scroll on the island to flip through them." Foreground="#8F94A0" FontSize="12" Margin="0,2,0,0"/>
-
-                    <TextBlock Text="Music card follows" Margin="0,14,0,6"/>
-                    <WrapPanel>
-                        <RadioButton x:Name="MediaAll" Content="Every app" GroupName="MediaFilter" Checked="Changed"/>
-                        <RadioButton x:Name="MediaMusic" Content="Music players only" GroupName="MediaFilter" Checked="Changed"/>
-                        <RadioButton x:Name="MediaExcept" Content="Every app except" GroupName="MediaFilter" Checked="Changed"/>
-                    </WrapPanel>
-                    <TextBox x:Name="MediaIgnore" Style="{StaticResource SetField}" Margin="0,6,0,0" LostFocus="Changed"
-                             ToolTip="App names, separated by commas, e.g. Chrome, Edge"/>
-                    <TextBlock x:Name="MediaSeen" Foreground="#8F94A0" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Behaviour -->
-            <TextBlock Style="{StaticResource H}" Text="BEHAVIOUR"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <CheckBox x:Name="StartWithWindows" Content="Start CyaNotch when I sign in to Windows" Click="Changed"/>
-                    <CheckBox x:Name="AutoHide" Content="Hide the island until I move the mouse to the top of the screen" Click="Changed"/>
-                    <CheckBox x:Name="ShowPlaying" Content="Keep it showing while music plays (for the visualizer)" Margin="22,5,0,5" Click="Changed"/>
-                    <CheckBox x:Name="Glance" Content="Pop up time, CPU, GPU, RAM and temperature every few minutes" Click="Changed"/>
-                    <TextBlock Text="Over fullscreen games and videos" Margin="0,4,0,6"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                        <RadioButton x:Name="FsStrip" Content="Slim stats strip" GroupName="Fs" Checked="Changed"/>
-                        <RadioButton x:Name="FsHide" Content="Hide the island" GroupName="Fs" Checked="Changed"/>
-                        <RadioButton x:Name="FsOff" Content="Keep it as usual" GroupName="Fs" Checked="Changed"/>
-                    </StackPanel>
-                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6"
-                               Text="The strip shows FPS when CyaNotch runs as administrator, and GPU temperature on NVIDIA cards. Games must use borderless or windowed fullscreen."/>
-                    <CheckBox x:Name="MicHotkey" Content="Ctrl+Alt+M mutes the microphone in every app" Click="Changed"/>
-                    <CheckBox x:Name="ShowNotes" Content="Show Windows notifications in the island" Click="Changed"/>
-                    <CheckBox x:Name="Clock24" Content="24-hour clock" Click="Changed"/>
-                    <Grid Margin="0,8,0,0">
-                        <TextBlock Text="Clipboard history size" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="ClipLimit" HorizontalAlignment="Right" Width="90" SelectionChanged="Changed">
-                            <ComboBoxItem Content="50"/>
-                            <ComboBoxItem Content="100"/>
-                            <ComboBoxItem Content="200"/>
-                            <ComboBoxItem Content="500"/>
-                        </ComboBox>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- Lyrics -->
-            <TextBlock Style="{StaticResource H}" Text="LYRICS"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <CheckBox x:Name="LyricsOn" Content="Show lyrics that follow the song" Click="Changed"/>
-                    <CheckBox x:Name="LyricsPill" Content="Show the current line in the pill (with the title style)" Click="Changed"/>
-                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
-                               Text="Lyrics come from lrclib.net. Only the song title and artist are sent, and only while this is on."/>
-                </StackPanel>
-            </Border>
-
-            <!-- Phone remote -->
-            <TextBlock Style="{StaticResource H}" Text="PHONE REMOTE"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap"
-                               Text="Turn it on from the island's controls tab and scan the code. These apps appear on the phone's Apps tab:"/>
-                    <ItemsControl x:Name="DeckApps" Margin="0,8,0,0">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="0,3">
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                                    <Button HorizontalAlignment="Right" Content="Remove" Padding="8,2" Click="RemoveDeckApp_Click"/>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <Button Style="{StaticResource SetButton}" Content="Add app…" Click="AddDeckApp_Click"/>
-                        <Button Content="Forget approved phones" Padding="12,5" Margin="8,0,0,0" Click="ResetPhones_Click"/>
-                    </StackPanel>
-                    <TextBlock x:Name="PhonesText" Foreground="#8F94A0" FontSize="12" Margin="0,6,0,0"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Desktop widgets -->
-            <TextBlock Style="{StaticResource H}" Text="DESKTOP WIDGETS"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap"
-                               Text="Pin a widget to your desktop. Drag it where you like; right-click it to unpin. You can also right-click a tile in the island."/>
-                    <WrapPanel x:Name="WidgetButtons" Margin="0,8,0,0"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Weather -->
-            <TextBlock Style="{StaticResource H}" Text="WEATHER"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
+                <Border x:Name="Preview" Height="190" Margin="28,18,28,6" CornerRadius="16" ClipToBounds="True">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,1" EndPoint="1,0">
+                            <GradientStop Color="#2B3A8C" Offset="0"/>
+                            <GradientStop Color="#5A2A8A" Offset="0.6"/>
+                            <GradientStop Color="#8A2A72" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="City" Style="{StaticResource SetField}"/>
-                        <Button Grid.Column="1" Style="{StaticResource SetButton}" Content="Set city" Margin="8,0,0,0" Click="SetCity_Click"/>
-                    </Grid>
-                    <TextBlock x:Name="CityStatus" Foreground="#8F94A0" FontSize="12" Margin="0,6,0,0"
-                               Text="Weather comes from Open-Meteo. Nothing is sent until you set a city."/>
-                    <CheckBox x:Name="Fahrenheit" Content="Use °F" Click="Changed"/>
-                </StackPanel>
-            </Border>
+                        <!-- a pretend desktop -->
+                        <StackPanel Orientation="Horizontal" Margin="18,26,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Opacity="0.55">
+                            <StackPanel Margin="0,0,10,0"><Border Width="26" Height="26" CornerRadius="5" Background="#6E8BC7"/><Border Width="30" Height="3" CornerRadius="1.5" Background="#AFC0E8" Margin="0,5,0,0"/></StackPanel>
+                            <StackPanel><Border Width="26" Height="26" CornerRadius="5" Background="#D9B45A"/><Border Width="30" Height="3" CornerRadius="1.5" Background="#AFC0E8" Margin="0,5,0,0"/></StackPanel>
+                        </StackPanel>
 
-            <!-- World clocks -->
-            <TextBlock Style="{StaticResource H}" Text="WORLD CLOCKS"/>
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <ItemsControl x:Name="Clocks">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Margin="0,3">
-                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
-                                    <Button HorizontalAlignment="Right" Content="Remove" Padding="8,2" Click="RemoveClock_Click"/>
+                        <!-- the island -->
+                        <Border x:Name="PvIsland" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0"
+                                Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource SurfaceEdgeBrush}" BorderThickness="1"
+                                TextElement.Foreground="{DynamicResource TextBrush}" ClipToBounds="True" Cursor="Hand" MouseLeftButtonUp="PvIsland_Click">
+                            <Grid>
+                                <!-- resting pill -->
+                                <Grid x:Name="PvResting" Margin="8,0">
+                                    <Border Width="18" Height="18" CornerRadius="5" HorizontalAlignment="Left">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#FFB347" Offset="0"/><GradientStop Color="#E0457B" Offset="0.6"/><GradientStop Color="#6A2C91" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
+                                    <local:VisualizerBars x:Name="PvViz" Dots="True" DotRows="4" Width="26" Height="12" HorizontalAlignment="Right" BarBrush="{DynamicResource MediaVizBrush}" IsHitTestVisible="False"/>
                                 </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Grid Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="ClockLabel" Style="{StaticResource SetField}" ToolTip="Label, e.g. Dhaka"/>
-                        <ComboBox x:Name="ClockZone" Grid.Column="1" Margin="8,0,0,0" DisplayMemberPath="DisplayName" IsEditable="False"/>
-                        <Button Grid.Column="2" Style="{StaticResource SetButton}" Content="Add" Margin="8,0,0,0" Click="AddClock_Click"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
+                                <!-- open music card -->
+                                <Grid x:Name="PvOpen" Margin="14,10,14,10" Visibility="Collapsed">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <Border Width="50" Height="50" CornerRadius="10">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#FFB347" Offset="0"/><GradientStop Color="#E0457B" Offset="0.6"/><GradientStop Color="#6A2C91" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Midnight Drive" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"/>
+                                            <TextBlock Text="Aria Lane" FontSize="11.5" Foreground="{DynamicResource SubTextBrush}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" TextElement.Foreground="{DynamicResource TextBrush}">
+                                            <TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE892;" Foreground="{DynamicResource TextBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                            <TextBlock FontFamily="{StaticResource IconFont}" FontSize="18" Text="&#xE769;" Foreground="{DynamicResource TextBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                            <TextBlock FontFamily="{StaticResource IconFont}" FontSize="13" Text="&#xE893;" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <local:WavyProgress x:Name="PvProgress" Grid.Row="1" Margin="0,8,0,0" Value="0.42" Playing="True" Brush="{DynamicResource MediaAccentBrush}" Track="{DynamicResource TrackBrush}"/>
+                                    <Grid Grid.Row="2" Margin="0,3,0,0">
+                                        <TextBlock Text="1:24" FontFamily="Consolas" FontSize="10.5" Foreground="{DynamicResource SubTextBrush}"/>
+                                        <TextBlock Text="-2:09" FontFamily="Consolas" FontSize="10.5" Foreground="{DynamicResource SubTextBrush}" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Border>
 
-            <TextBlock Foreground="#6C717C" FontSize="11.5" Margin="2,18,0,0" TextWrapping="Wrap"
-                       Text="Everything CyaNotch keeps (clipboard, shelf, notifications, reminders) stays in %AppData%\CyaNotch on this PC."/>
-        </StackPanel>
-    </ScrollViewer>
+                        <TextBlock Text="Live preview. Click the island to open or close it." FontSize="11" Foreground="#D8DBF0" Margin="14,0,0,12" VerticalAlignment="Bottom"/>
+                        <Border Style="{StaticResource SegBox}" Background="#33000000" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,8">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="PvRestBtn" Content="Resting" GroupName="Pv" Padding="10,3" Checked="PvMode_Checked"/>
+                                <RadioButton x:Name="PvOpenBtn" Content="Open" GroupName="Pv" Padding="10,3" IsChecked="True" Checked="PvMode_Checked"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <ScrollViewer x:Name="Scroller" Grid.Row="1" VerticalScrollBarVisibility="Auto" ScrollChanged="Scroller_ScrollChanged">
+                    <StackPanel x:Name="Sections" Margin="28,0,28,40">
+                <!-- General -->
+                <StackPanel x:Name="SecGeneral" Tag="General" Margin="0,8,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="General"/>
+                    <TextBlock Style="{StaticResource Group}" Text="GENERAL"/>
+                    <CheckBox x:Name="StartWithWindows" Content="Run at startup" Tag="Start CyaNotch when you sign in to Windows." Click="Changed"/>
+                    <CheckBox x:Name="Clock24" Content="24-hour clock" Tag="Every clock on the island and the widgets follows this." Click="Changed"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="When the island opens"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="Which tab you land on."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="OpenLast" Content="Last tab" GroupName="OpenOn" Checked="Changed"/><RadioButton x:Name="OpenMusic" Content="Music" GroupName="OpenOn" Checked="Changed"/></StackPanel></Border>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="SHOWING AND HIDING"/>
+                    <CheckBox x:Name="AutoHide" Content="Hide until the pointer reaches the top" Tag="The island tucks away and slides down when you touch the top edge." Click="Changed"/>
+                    <CheckBox x:Name="ShowPlaying" Content="Stay out while music plays" Tag="Keeps the pill showing so the visualizer can play." Click="Changed"/>
+                    <CheckBox x:Name="Glance" Content="Glance at stats now and then" Tag="Pops up time, CPU, GPU, RAM and temperature every few minutes." Click="Changed"/>
+                </StackPanel>
+                <!-- Appearance -->
+                <StackPanel x:Name="SecAppearance" Tag="Appearance" Margin="0,34,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="Appearance"/>
+                    <TextBlock Style="{StaticResource Group}" Text="SHAPE"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Shape"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="Island floats just below the top edge, round all over. Notch hangs from the edge and curves into it."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="ShapeFloating" Content="Island" GroupName="Shape" Checked="Changed"/><RadioButton x:Name="ShapeNotch" Content="Notch" GroupName="Shape" Checked="Changed"/></StackPanel></Border>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Corners"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="How round the corners are, from square to fully round. The pill, the card and the drawers follow it."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <StackPanel Orientation="Horizontal"><Slider x:Name="Round" Style="{StaticResource ThinSlider}" Width="170" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChanged"/><TextBlock x:Name="RoundText" Style="{StaticResource Desc}" Width="58" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Resting width"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="How wide the resting pill is."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <StackPanel Orientation="Horizontal"><Slider x:Name="IslandWidth" Style="{StaticResource ThinSlider}" Width="170" Minimum="140" Maximum="320" TickFrequency="10" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChanged"/><TextBlock x:Name="WidthText" Style="{StaticResource Desc}" Width="58" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Animation speed"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="How fast the island grows and shrinks."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <StackPanel Orientation="Horizontal"><Slider x:Name="Speed" Style="{StaticResource ThinSlider}" Width="170" Minimum="0.4" Maximum="2" TickFrequency="0.1" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChanged" IsDirectionReversed="True"/><TextBlock x:Name="SpeedText" Style="{StaticResource Desc}" Width="58" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="SURFACE"/>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Surface"/>
+                            <TextBlock Style="{StaticResource Desc}" Text="Glass and Acrylic blur what is behind the island. Rosé, Lavender, Peach, Sakura and Candy glass are soft themes with their own accent."/>
+                            <WrapPanel x:Name="ThemePanel" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Glass tint"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="How dark the glass surfaces are."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <StackPanel Orientation="Horizontal"><Slider x:Name="GlassTint" Style="{StaticResource ThinSlider}" Width="170" Minimum="10" Maximum="90" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChanged"/><TextBlock x:Name="GlassTintText" Style="{StaticResource Desc}" Width="58" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <CheckBox x:Name="HideCapture" Content="Keep the island out of screenshots and recordings" Tag="On: PrtScn, Snipping Tool and OBS do not see the island." Click="Changed"/>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Accent"/>
+                            <TextBlock Style="{StaticResource Desc}" Text="Colours the visualizer, progress and level bars."/>
+                            <WrapPanel x:Name="AccentPanel" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <CheckBox x:Name="ArtColorsBox" Content="Colour from the artwork" Tag="The visualizer and progress take the song cover's colour." Click="Changed"/>
+                    <CheckBox x:Name="AmbientBox" Content="Artwork glow" Tag="A soft blur of the cover behind the island on dark surfaces." Click="Changed"/>
+                    <TextBlock Style="{StaticResource Group}" Text="MUSIC"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Visualizer"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="What plays beside the artwork on the pill while music plays."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="VizDots" Content="Pixels" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizBars" Content="Bars" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizTitle" Content="Bars + title" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/></StackPanel></Border>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <CheckBox x:Name="VizMirror" Content="Bars grow from the middle" Tag="Bars reach up and down from a centre line." Click="Changed"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Progress"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="How the song's progress bar looks."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="ProgWave" Content="Wave" GroupName="Prog" Checked="Changed"/><RadioButton x:Name="ProgLine" Content="Line" GroupName="Prog" Checked="Changed"/><RadioButton x:Name="ProgBar" Content="Bar" GroupName="Prog" Checked="Changed"/><RadioButton x:Name="ProgDots" Content="Dots" GroupName="Prog" Checked="Changed"/><RadioButton x:Name="ProgGlow" Content="Glow" GroupName="Prog" Checked="Changed"/></StackPanel></Border>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <!-- Island -->
+                <StackPanel x:Name="SecIsland" Tag="Island" Margin="0,34,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="Island"/>
+                    <TextBlock Style="{StaticResource Group}" Text="PLACE"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Position"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="Where the island sits along the top."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="SideLeft" Content="Left" GroupName="Side" Checked="Changed"/><RadioButton x:Name="SideCentre" Content="Center" GroupName="Side" Checked="Changed"/><RadioButton x:Name="SideRight" Content="Right" GroupName="Side" Checked="Changed"/></StackPanel></Border>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Screen"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="Which screen the island lives on."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <ComboBox x:Name="MonitorBox" Width="220" SelectionChanged="Changed"/>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Distance from top"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="Gap between the top edge and the island."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <StackPanel Orientation="Horizontal"><Slider x:Name="Distance" Style="{StaticResource ThinSlider}" Width="170" Minimum="0" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChanged"/><TextBlock x:Name="DistanceText" Style="{StaticResource Desc}" Width="58" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="RESTING"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="When resting, show"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="What the island shows while nothing plays and nothing is going on."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <ComboBox x:Name="Resting" Width="170" SelectionChanged="Changed">
+                                    <ComboBoxItem Content="Time"/><ComboBoxItem Content="Date"/><ComboBoxItem Content="Weather"/>
+                                    <ComboBoxItem Content="Battery"/><ComboBoxItem Content="CPU"/><ComboBoxItem Content="CPU and temperature"/>
+                                </ComboBox>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Open delay"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="How long the pointer rests on the island before it opens."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <StackPanel Orientation="Horizontal"><Slider x:Name="Delay" Style="{StaticResource ThinSlider}" Width="170" Minimum="0" Maximum="1000" TickFrequency="20" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChanged"/><TextBlock x:Name="DelayText" Style="{StaticResource Desc}" Width="58" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="FULLSCREEN"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Over games and videos"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="The strip shows FPS when run as administrator. Games must be borderless or windowed."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="FsStrip" Content="Stats strip" GroupName="Fs" Checked="Changed"/><RadioButton x:Name="FsHide" Content="Hide" GroupName="Fs" Checked="Changed"/><RadioButton x:Name="FsOff" Content="As usual" GroupName="Fs" Checked="Changed"/></StackPanel></Border>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="NOW PLAYING"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Music card follows"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="Which apps count as music."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="MediaAll" Content="Every app" GroupName="MediaFilter" Checked="Changed"/><RadioButton x:Name="MediaMusic" Content="Music players" GroupName="MediaFilter" Checked="Changed"/><RadioButton x:Name="MediaExcept" Content="All except" GroupName="MediaFilter" Checked="Changed"/></StackPanel></Border>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Apps to skip"/>
+                            <TextBlock Style="{StaticResource Desc}" Text="Names separated by commas, e.g. Chrome, Edge."/>
+                            <StackPanel>
+                                <TextBox x:Name="MediaIgnore" Style="{StaticResource Field}" Margin="0,8,0,0" LostFocus="Changed"/>
+                                <TextBlock x:Name="MediaSeen" Style="{StaticResource Desc}" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <!-- Taskbar -->
+                <StackPanel x:Name="SecTaskbar" Tag="Taskbar" Margin="0,34,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="Taskbar"/>
+                    <TextBlock Style="{StaticResource Group}" Text="CYANOTCH TASKBAR"/>
+                    <CheckBox x:Name="TaskbarOn" Content="CyaNotch taskbar" Tag="A notch along the bottom of your screen in place of Windows' taskbar: Start, your pinned and open apps, the song playing, the tray, quick settings and the clock." Click="Changed"/>
+                    <CheckBox x:Name="TaskbarHideWin" Content="Hide Windows' taskbar" Tag="Windows' taskbar comes back as it was when you turn this off or CyaNotch closes." Click="Changed"/>
+                </StackPanel>
+                <!-- Panels -->
+                <StackPanel x:Name="SecPanels" Tag="Panels" Margin="0,34,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="Panels"/>
+                    <TextBlock Style="{StaticResource Group}" Text="NOTIFICATIONS"/>
+                    <CheckBox x:Name="ShowNotes" Content="Mirror notifications" Tag="New notifications appear in the island. Click one to open the app." Click="Changed"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Notification time"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="How long a new notification shows on the closed island. Several stack up; scroll to flip through."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <StackPanel Orientation="Horizontal"><Slider x:Name="PeekSecs" Style="{StaticResource ThinSlider}" Width="170" Minimum="2" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center" ValueChanged="SliderChanged"/><TextBlock x:Name="PeekText" Style="{StaticResource Desc}" Width="58" TextAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"/></StackPanel>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="CLIPBOARD"/>
+                    <Border Style="{StaticResource Row}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource RowTitle}" Text="Entries to keep"/>
+                                <TextBlock Style="{StaticResource Desc}" Text="Snippets do not count and stay until you remove them."/>
+                            </StackPanel>
+                            <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
+                                <ComboBox x:Name="ClipLimit" Width="90" SelectionChanged="Changed">
+                                    <ComboBoxItem Content="50"/><ComboBoxItem Content="100"/><ComboBoxItem Content="200"/><ComboBoxItem Content="500"/>
+                                </ComboBox>
+                            </ContentControl>
+                        </Grid>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="LYRICS"/>
+                    <CheckBox x:Name="LyricsOn" Content="Lyrics" Tag="Lines that follow the song, from lrclib.net. Only the title and artist are sent, only while this is on." Click="Changed"/>
+                    <CheckBox x:Name="LyricsPill" Content="Current line in the pill" Tag="Shows the line being sung on the resting pill." Click="Changed"/>
+                    <TextBlock Style="{StaticResource Group}" Text="PHONE REMOTE"/>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Apps on the phone"/>
+                            <TextBlock Style="{StaticResource Desc}" Text="Turn the remote on with the phone button in the island and scan the code. These apps show on the phone's Apps tab."/>
+                            <StackPanel Margin="0,8,0,0">
+                                <ItemsControl x:Name="DeckApps">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3">
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                                <Button HorizontalAlignment="Right" Style="{StaticResource PillButton}" Content="Remove" Click="RemoveDeckApp_Click"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Style="{StaticResource AccentPill}" Content="Add app" Click="AddDeckApp_Click"/>
+                                    <Button Style="{StaticResource PillButton}" Content="Forget approved phones" Margin="8,0,0,0" Click="ResetPhones_Click"/>
+                                </StackPanel>
+                                <TextBlock x:Name="PhonesText" Style="{StaticResource Desc}" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <!-- Widgets -->
+                <StackPanel x:Name="SecWidgets" Tag="Widgets" Margin="0,34,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="Widgets"/>
+                    <TextBlock Style="{StaticResource Group}" Text="ON THE DESKTOP"/>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Desktop widgets"/>
+                            <TextBlock Style="{StaticResource Desc}" Text="Pin a widget to your wallpaper. Drag it where you like; right-click it to unpin."/>
+                            <WrapPanel x:Name="WidgetButtons" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource Group}" Text="WEATHER"/>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Place"/>
+                            <TextBlock Style="{StaticResource Desc}" Text="Conditions from Open-Meteo; only the place leaves your PC."/>
+                            <StackPanel Margin="0,8,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox x:Name="City" Style="{StaticResource Field}"/>
+                                    <Button Grid.Column="1" Style="{StaticResource PillButton}" Content="Save" Margin="8,0,0,0" Click="SetCity_Click"/>
+                                </Grid>
+                                <TextBlock x:Name="CityStatus" Style="{StaticResource Desc}" Margin="0,6,0,0" Text="Nothing is sent until you set a place."/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <CheckBox x:Name="Fahrenheit" Content="Fahrenheit" Tag="Show temperatures in °F." Click="Changed"/>
+                    <TextBlock Style="{StaticResource Group}" Text="WORLD CLOCK"/>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Cities"/>
+                            <TextBlock Style="{StaticResource Desc}" Text="The Clock widget lists them beside your own time."/>
+                            <StackPanel Margin="0,8,0,0">
+                                <ItemsControl x:Name="Clocks">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3">
+                                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+                                                <Button HorizontalAlignment="Right" Style="{StaticResource PillButton}" Content="Remove" Click="RemoveClock_Click"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ClockLabel" Style="{StaticResource Field}" Tag="Label"/>
+                                    <ComboBox x:Name="ClockZone" Grid.Column="1" Margin="8,0,0,0" DisplayMemberPath="DisplayName"/>
+                                    <Button Grid.Column="2" Style="{StaticResource PillButton}" Content="Add" Margin="8,0,0,0" Click="AddClock_Click"/>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <!-- Calls and keys -->
+                <StackPanel x:Name="SecCalls" Tag="Calls and keys" Margin="0,34,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="Calls and keys"/>
+                    <TextBlock Style="{StaticResource Group}" Text="CALLS"/>
+                    <CheckBox x:Name="MicHotkey" Content="Mute hotkey" Tag="Ctrl+Alt+M mutes or unmutes your microphone in every app, even in fullscreen games." Click="Changed"/>
+                    <TextBlock Style="{StaticResource Group}" Text="LAUNCHER"/>
+                    <CheckBox x:Name="LauncherKeys" Content="Launcher hotkeys" Tag="Ctrl+Alt+1 to 9 open the first nine apps in the Launcher tab." Click="Changed"/>
+                </StackPanel>
+                <!-- AI agents -->
+                <StackPanel x:Name="SecAgents" Tag="AI agents" Margin="0,34,0,0">
+                    <TextBlock Style="{StaticResource Kicker}" Text="SETTINGS"/>
+                    <TextBlock Style="{StaticResource SecTitle}" Text="AI agents"/>
+                    <TextBlock Style="{StaticResource Group}" Text="ON THE ISLAND"/>
+                    <CheckBox x:Name="AgentsOn" Content="Show AI agents" Tag="Claude Code, Codex and your own agents on the island: the pill shows what an agent is doing, a notice says when it needs you, and the Agents tab lists every session. Applies after a restart." Click="Changed"/>
+                </StackPanel>
+
+                        <TextBlock x:Name="NoResults" Style="{StaticResource Desc}" FontSize="13" Margin="0,30,0,0" Visibility="Collapsed" Text="No settings match."/>
+                        <TextBlock Style="{StaticResource Desc}" FontSize="11.5" Margin="0,34,0,0"
+                                   Text="Everything CyaNotch keeps (clipboard, shelf, notifications, reminders) stays in %AppData%\CyaNotch on this PC."/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Grid>
 </Window>
