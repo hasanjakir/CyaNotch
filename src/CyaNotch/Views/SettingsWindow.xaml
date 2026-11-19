@@ -1,0 +1,157 @@
+<Window x:Class="CyaNotch.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CyaNotch Settings" Width="560" Height="680"
+        WindowStartupLocation="CenterScreen" ResizeMode="CanMinimize"
+        Background="#16171B" FontFamily="{StaticResource UiFont}">
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F2F3F5"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style x:Key="H" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#8F94A0"/>
+            <Setter Property="Margin" Value="2,18,0,6"/>
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="#202228"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14,10"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#F2F3F5"/>
+            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#F2F3F5"/>
+            <Setter Property="Margin" Value="0,0,16,0"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style x:Key="SetField" TargetType="TextBox">
+            <Setter Property="Background" Value="#2A2D34"/>
+            <Setter Property="Foreground" Value="#F2F3F5"/>
+            <Setter Property="CaretBrush" Value="#F2F3F5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,5"/>
+        </Style>
+        <Style x:Key="SetButton" TargetType="Button">
+            <Setter Property="Background" Value="#40E0E8"/>
+            <Setter Property="Foreground" Value="#0B121C"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="22,8,22,22">
+            <TextBlock Text="CyaNotch" FontSize="24" FontWeight="SemiBold" Margin="2,10,0,0"/>
+            <TextBlock Text="Hover the island at the top of your screen to open it." Foreground="#8F94A0" Margin="2,2,0,0"/>
+
+            <!-- Look -->
+            <TextBlock Style="{StaticResource H}" Text="LOOK"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Theme" Margin="0,2,0,6"/>
+                    <WrapPanel x:Name="ThemePanel"/>
+
+                    <TextBlock Text="Shape" Margin="0,12,0,6"/>
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="ShapeFloating" Content="Floating island" GroupName="Shape" Checked="Changed"/>
+                        <RadioButton x:Name="ShapeNotch" Content="Notch from top edge" GroupName="Shape" Checked="Changed"/>
+                    </StackPanel>
+
+                    <Grid Margin="0,14,0,0">
+                        <TextBlock Text="Distance from top"/>
+                        <TextBlock x:Name="DistanceText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
+                    </Grid>
+                    <Slider x:Name="Distance" Minimum="0" Maximum="40" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
+
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="Island width"/>
+                        <TextBlock x:Name="WidthText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
+                    </Grid>
+                    <Slider x:Name="IslandWidth" Minimum="140" Maximum="320" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
+
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="Animation speed"/>
+                        <TextBlock x:Name="SpeedText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
+                    </Grid>
+                    <Slider x:Name="Speed" Minimum="0.4" Maximum="2" TickFrequency="0.1" IsSnapToTickEnabled="True" IsDirectionReversed="True" ValueChanged="SliderChanged"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Behaviour -->
+            <TextBlock Style="{StaticResource H}" Text="BEHAVIOUR"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <CheckBox x:Name="StartWithWindows" Content="Start CyaNotch when I sign in to Windows" Click="Changed"/>
+                    <CheckBox x:Name="HideFullscreen" Content="Hide the island over fullscreen games and videos" Click="Changed"/>
+                    <CheckBox x:Name="MicHotkey" Content="Ctrl+Alt+M mutes the microphone in every app" Click="Changed"/>
+                    <CheckBox x:Name="ShowNotes" Content="Show Windows notifications in the island" Click="Changed"/>
+                    <CheckBox x:Name="Clock24" Content="24-hour clock" Click="Changed"/>
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="Clipboard history size" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="ClipLimit" HorizontalAlignment="Right" Width="90" SelectionChanged="Changed">
+                            <ComboBoxItem Content="50"/>
+                            <ComboBoxItem Content="100"/>
+                            <ComboBoxItem Content="200"/>
+                            <ComboBoxItem Content="500"/>
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Weather -->
+            <TextBlock Style="{StaticResource H}" Text="WEATHER"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="City" Style="{StaticResource SetField}"/>
+                        <Button Grid.Column="1" Style="{StaticResource SetButton}" Content="Set city" Margin="8,0,0,0" Click="SetCity_Click"/>
+                    </Grid>
+                    <TextBlock x:Name="CityStatus" Foreground="#8F94A0" FontSize="12" Margin="0,6,0,0"
+                               Text="Weather comes from Open-Meteo. Nothing is sent until you set a city."/>
+                    <CheckBox x:Name="Fahrenheit" Content="Use °F" Click="Changed"/>
+                </StackPanel>
+            </Border>
+
+            <!-- World clocks -->
+            <TextBlock Style="{StaticResource H}" Text="WORLD CLOCKS"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <ItemsControl x:Name="Clocks">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+                                    <Button HorizontalAlignment="Right" Content="Remove" Padding="8,2" Click="RemoveClock_Click"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Grid Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ClockLabel" Style="{StaticResource SetField}" ToolTip="Label, e.g. Dhaka"/>
+                        <ComboBox x:Name="ClockZone" Grid.Column="1" Margin="8,0,0,0" DisplayMemberPath="DisplayName" IsEditable="False"/>
+                        <Button Grid.Column="2" Style="{StaticResource SetButton}" Content="Add" Margin="8,0,0,0" Click="AddClock_Click"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Foreground="#6C717C" FontSize="11.5" Margin="2,18,0,0" TextWrapping="Wrap"
+                       Text="Everything CyaNotch keeps (clipboard, shelf, notifications, reminders) stays in %AppData%\CyaNotch on this PC."/>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
