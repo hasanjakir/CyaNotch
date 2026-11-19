@@ -33,6 +33,7 @@ public partial class App : Application
     public static FocusService Focus { get; } = new();
     public static ObsService Obs { get; } = new();
     public static CaptureService Capture { get; } = new();
+    public static AgentService Agents { get; } = new();
 
     public static new App Current => (App)Application.Current;
 
@@ -63,6 +64,7 @@ public partial class App : Application
         _island.Show();
         WidgetWindow.RestoreAll();
         Obs.Start();
+        Agents.Start();
 
         CreateTray();
         Log.Info("CyaNotch started");

@@ -223,6 +223,10 @@
 
                     <!-- right: equaliser / mic / call timer -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel x:Name="AgentPill" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,6,0" ToolTip="Coding agents">
+                            <Ellipse x:Name="AgentDot" Width="7" Height="7" Fill="#FFB020" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock x:Name="AgentCount" FontSize="11.5" FontWeight="SemiBold"/>
+                        </StackPanel>
                         <StackPanel x:Name="RecPill" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,6,0">
                             <Ellipse Width="7" Height="7" Fill="{StaticResource DangerBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                             <TextBlock x:Name="RecTime" FontSize="11.5" FontWeight="SemiBold" Text="REC" Foreground="{StaticResource DangerBrush}"/>
@@ -278,6 +282,7 @@
                             <RadioButton x:Name="TabControls" Style="{StaticResource TabButton}" Content="&#xE9E9;" ToolTip="Quick controls" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabLauncher" Style="{StaticResource TabButton}" Content="&#xE71D;" ToolTip="Launcher" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabFocus" Style="{StaticResource TabButton}" Content="&#xE916;" ToolTip="Focus" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabAgents" Style="{StaticResource TabButton}" Content="&#xE99A;" ToolTip="Agents" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabStream" Style="{StaticResource TabButton}" Content="&#xE714;" ToolTip="Capture and stream" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabCalls" Style="{StaticResource TabButton}" Content="&#xE717;" ToolTip="Calls" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabReminders" Style="{StaticResource TabButton}" Content="&#xE823;" ToolTip="Reminders and to-do" Checked="Tab_Checked"/>
@@ -496,6 +501,7 @@
                         <tabs:FocusPage x:Name="PageFocus" Visibility="Collapsed"/>
                         <tabs:CallsPage x:Name="PageCalls" Visibility="Collapsed"/>
                         <tabs:StreamPage x:Name="PageStream" Visibility="Collapsed"/>
+                        <tabs:AgentsPage x:Name="PageAgents" Visibility="Collapsed"/>
 
                         <!-- ===== CLIPBOARD ===== -->
                         <DockPanel x:Name="PageClip" Visibility="Collapsed">

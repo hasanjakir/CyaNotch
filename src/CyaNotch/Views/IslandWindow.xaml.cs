@@ -84,6 +84,12 @@ public partial class IslandWindow : Window
     {
         InitializeComponent();
         MediaProgress.SeekRequested += Progress_Seek;
+        App.Agents.Changed += () => Dispatcher.BeginInvoke(UpdateAgentPill);
+        App.Agents.Alert += s => Dispatcher.BeginInvoke(() =>
+        {
+            if (s.State == AgentState.NeedsYou) ShowPeek("\uE99A", $"{s.Agent} needs you", $"{s.Folder} · {s.Message}");
+            else ShowPeek("\uE73E", $"{s.Agent} is done", s.Folder);
+        });
         PageStream.ShotDone += path =>
         {
             if (path != null) ShowPeek("\uE722", "Screenshot saved", Settings.Current.CapturesOnShelf ? "On the shelf and in Pictures › CyaNotch" : "In Pictures › CyaNotch");
@@ -381,6 +387,7 @@ public partial class IslandWindow : Window
         if (_callStart != null) w += 40;
         if (_timerEnd != null) w += 30;
         if (RecPill?.Visibility == Visibility.Visible) w += 70;
+        if (AgentPill?.Visibility == Visibility.Visible) w += 26;
         return new Size(w, h);
     }
 
@@ -1170,8 +1177,9 @@ public partial class IslandWindow : Window
         PageFocus.Visibility = TabFocus.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageCalls.Visibility = TabCalls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageStream.Visibility = TabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageAgents.Visibility = TabAgents.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (_mode == Mode.Expanded) AnimateTo(ExpandedSize(), bouncy: false);
-        foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabLauncher, TabFocus, TabStream, TabCalls, TabReminders })
+        foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabLauncher, TabFocus, TabAgents, TabStream, TabCalls, TabReminders })
             if (t.IsChecked == true) { Settings.Current.LastTab = t.Name; break; }
         PageClip.Visibility = TabClip.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageShelf.Visibility = TabShelf.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -1341,6 +1349,21 @@ public partial class IslandWindow : Window
     private async void Next_Click(object sender, RoutedEventArgs e) => await App.Media.NextAsync();
     private async void Prev_Click(object sender, RoutedEventArgs e) => await App.Media.PreviousAsync();
 
+
+    /// <summary>Amber dot with a count when agents need you; accent dot while they work.</summary>
+    private void UpdateAgentPill()
+    {
+        var need = App.Agents.NeedYou;
+        var work = App.Agents.Working;
+        var show = need > 0 || work > 0;
+        AgentDot.Fill = need > 0 ? new SolidColorBrush(Color.FromRgb(0xFF, 0xB0, 0x20)) : (Brush)FindResource("AccentBrush");
+        AgentCount.Text = need > 0 ? need.ToString() : work.ToString();
+        if (show != (AgentPill.Visibility == Visibility.Visible))
+        {
+            AgentPill.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            AnimateIfCompact();
+        }
+    }
 
     private void HeaderRecStop_Click(object sender, RoutedEventArgs e) => App.Capture.ToggleRecording();
 
