@@ -59,6 +59,7 @@ public sealed class ShelfService
 
     public void Add(IEnumerable<string> paths, string folder)
     {
+        if (!Folders.Contains(folder)) Folders.Add(folder);
         foreach (var p in paths)
         {
             if (Items.Any(i => string.Equals(i.Path, p, StringComparison.OrdinalIgnoreCase) && i.Folder == folder)) continue;
