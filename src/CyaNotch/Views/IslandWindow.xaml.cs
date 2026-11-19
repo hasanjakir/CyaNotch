@@ -882,7 +882,7 @@ public partial class IslandWindow : Window
         if (m.HasSession && m.IsPlaying && Settings.Current.LyricsInPill && !string.IsNullOrEmpty(_currentLyric))
             CompactText.Text = _currentLyric;
         else if (m.HasSession && m.IsPlaying && !string.IsNullOrEmpty(m.Title))
-            CompactText.Text = m.Title;
+            CompactText.Text = ShortTitle(m.Title, m.Artist);
         else if (timerText != null)
             CompactText.Text = timerText;
         else
@@ -1015,6 +1015,40 @@ public partial class IslandWindow : Window
     /// Decides what the collapsed pill shows. While music plays the visualizer spans the whole pill;
     /// depending on the setting the title sits on top of it or is hidden.
     /// </summary>
+    private void CompactText_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateVizGap();
+
+    private void UpdateVizGap()
+    {
+        var titled = Settings.Current.VisualizerStyle == VisualizerStyle.BarsWithTitle && CompactText.Visibility == Visibility.Visible;
+        Viz.GapWidth = titled && CompactText.ActualWidth > 0 ? CompactText.ActualWidth + 16 : 0;
+    }
+
+    /// <summary>
+    /// "Imagine Dragons - Wrecked (Official Music Video)" becomes "Wrecked": drops video tags,
+    /// and the artist prefix that video sites put in front of the song name.
+    /// </summary>
+    internal static string ShortTitle(string title, string artist)
+    {
+        var t = title;
+        foreach (var marker in new[] { " (Official", " [Official", " (Lyric", " [Lyric", " (Audio", " [Audio", " (Music Video", " (Visualizer", " (Video", " | ", " ft.", " feat." })
+        {
+            var i = t.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (i > 0) t = t[..i];
+        }
+        var dash = t.IndexOf(" - ", StringComparison.Ordinal);
+        if (dash > 0)
+        {
+            static string Squash(string s) => new string(s.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            var before = Squash(t[..dash]);
+            var a = Squash((artist ?? "").Replace("VEVO", "", StringComparison.OrdinalIgnoreCase).Replace("- Topic", ""));
+            // Browsers report the channel as the artist; drop the prefix when it names the same act (or there's no artist).
+            if (before.Length > 0 && (a.Length == 0 || a.Contains(before) || before.Contains(a)))
+                t = t[(dash + 3)..];
+        }
+        t = t.Trim();
+        return t.Length == 0 ? title : t;
+    }
+
     /// <summary>
     /// Soft blur of the artwork behind the island while music plays. Only on dark themes,
     /// where it reads as coloured glass; light themes keep their own surface.
@@ -1061,7 +1095,12 @@ public partial class IslandWindow : Window
 
         Viz.Mirrored = Settings.Current.VisualizerMirrored;
         Viz.Visibility = showViz ? Visibility.Visible : Visibility.Collapsed;
-        Viz.Opacity = style == VisualizerStyle.BarsWithTitle ? 0.6 : 1.0;
+        Viz.Opacity = style == VisualizerStyle.BarsWithTitle ? 0.85 : 1.0;
+        // With a title, it stays small in the middle and the bars run on both sides of it.
+        var titled = style == VisualizerStyle.BarsWithTitle && playing;
+        CompactText.FontSize = titled ? 11.5 : 12.5;
+        CompactText.MaxWidth = titled ? Math.Max(60, (CompactSize().Width - 20) * 0.42) : double.PositiveInfinity;
+        UpdateVizGap();
         Viz.Active = showViz && compactVisible;
         DotViz.Visibility = dots ? Visibility.Visible : Visibility.Collapsed;
         DotViz.Active = dots && compactVisible;
