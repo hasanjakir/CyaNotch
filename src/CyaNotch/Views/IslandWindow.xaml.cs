@@ -84,6 +84,10 @@ public partial class IslandWindow : Window
     {
         InitializeComponent();
         MediaProgress.SeekRequested += Progress_Seek;
+        PageStream.ShotDone += path =>
+        {
+            if (path != null) ShowPeek("\uE722", "Screenshot saved", Settings.Current.CapturesOnShelf ? "On the shelf and in Pictures › CyaNotch" : "In Pictures › CyaNotch");
+        };
         MediaProgress.Look = Settings.Current.ProgressStyle;
         MediaProgress.Touch = Themes.Current.Touch;
 
@@ -376,6 +380,7 @@ public partial class IslandWindow : Window
         if (MusicPlaying) w += Settings.Current.VisualizerStyle switch { VisualizerStyle.Off => 70, VisualizerStyle.Dots => 40, _ => 130 };
         if (_callStart != null) w += 40;
         if (_timerEnd != null) w += 30;
+        if (RecPill?.Visibility == Visibility.Visible) w += 70;
         return new Size(w, h);
     }
 
@@ -988,6 +993,19 @@ public partial class IslandWindow : Window
                 break;
         }
 
+        // Recording / streaming pill (Game Bar recording or OBS)
+        string? rec = null;
+        if (App.Capture.Recording) rec = "REC " + Fmt(now - App.Capture.RecordingSince);
+        else if (App.Obs.Recording) rec = "REC " + Fmt(now - App.Obs.RecordingSince);
+        else if (App.Obs.Streaming) rec = "LIVE " + Fmt(now - App.Obs.StreamingSince);
+        if ((rec != null) != (RecPill.Visibility == Visibility.Visible))
+        {
+            RecPill.Visibility = rec != null ? Visibility.Visible : Visibility.Collapsed;
+            AnimateIfCompact();
+        }
+        if (rec != null) RecTime.Text = rec;
+        HeaderRecStop.Visibility = App.Capture.Recording ? Visibility.Visible : Visibility.Collapsed;
+
         // Call timer
         if (_callStart is { } cs) CallTime.Text = Fmt(now - cs);
 
@@ -1151,8 +1169,9 @@ public partial class IslandWindow : Window
         PageLauncher.Visibility = TabLauncher.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageFocus.Visibility = TabFocus.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageCalls.Visibility = TabCalls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageStream.Visibility = TabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (_mode == Mode.Expanded) AnimateTo(ExpandedSize(), bouncy: false);
-        foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabLauncher, TabFocus, TabCalls, TabReminders })
+        foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabLauncher, TabFocus, TabStream, TabCalls, TabReminders })
             if (t.IsChecked == true) { Settings.Current.LastTab = t.Name; break; }
         PageClip.Visibility = TabClip.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageShelf.Visibility = TabShelf.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -1322,6 +1341,8 @@ public partial class IslandWindow : Window
     private async void Next_Click(object sender, RoutedEventArgs e) => await App.Media.NextAsync();
     private async void Prev_Click(object sender, RoutedEventArgs e) => await App.Media.PreviousAsync();
 
+
+    private void HeaderRecStop_Click(object sender, RoutedEventArgs e) => App.Capture.ToggleRecording();
 
     private void LyricsToggle_Click(object sender, RoutedEventArgs e)
     {

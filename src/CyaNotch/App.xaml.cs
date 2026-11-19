@@ -31,6 +31,8 @@ public partial class App : Application
     public static PhoneServer Phone { get; } = new();
     public static DeckService Deck { get; } = new(Phone);
     public static FocusService Focus { get; } = new();
+    public static ObsService Obs { get; } = new();
+    public static CaptureService Capture { get; } = new();
 
     public static new App Current => (App)Application.Current;
 
@@ -60,6 +62,7 @@ public partial class App : Application
         _island = new IslandWindow();
         _island.Show();
         WidgetWindow.RestoreAll();
+        Obs.Start();
 
         CreateTray();
         Log.Info("CyaNotch started");

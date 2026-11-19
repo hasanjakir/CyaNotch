@@ -88,6 +88,26 @@ public sealed class Settings
     public int BreakMinutes { get; set; } = 5;
     /// <summary>Hold back notification pop-ups during a focus session.</summary>
     public bool FocusSilence { get; set; } = true;
+    /// <summary>Show a REC / LIVE pill while OBS records or streams (needs OBS's WebSocket server on).</summary>
+    public bool ObsEnabled { get; set; }
+    public int ObsPort { get; set; } = 4455;
+    /// <summary>OBS WebSocket password. Stored protected for this Windows account.</summary>
+    [JsonIgnore] public string ObsPassword
+    {
+        get => Secret.Unprotect(ObsPasswordProtected);
+        set => ObsPasswordProtected = Secret.Protect(value);
+    }
+    public string ObsPasswordProtected { get; set; } = "";
+    /// <summary>"twitch" or "youtube".</summary>
+    public string ChatPlatform { get; set; } = "twitch";
+    /// <summary>Twitch channel name, or YouTube live video id / link.</summary>
+    public string ChatChannel { get; set; } = "";
+    public double ChatLeft { get; set; } = double.NaN;
+    public double ChatTop { get; set; } = double.NaN;
+    public double ChatWidth { get; set; } = 360;
+    public double ChatHeight { get; set; } = 560;
+    /// <summary>Put new screenshots on the file shelf too.</summary>
+    public bool CapturesOnShelf { get; set; } = true;
     public double DistanceFromTop { get; set; } = 8;
     /// <summary>1.0 = normal. Lower is faster.</summary>
     public double AnimationSpeed { get; set; } = 1.0;
@@ -161,12 +181,37 @@ public sealed class Settings
     public static void SaveQuietly() => Storage.Save("settings.json", Current);
 }
 
+/// <summary>Encrypts small secrets for the current Windows account (DPAPI).</summary>
+public static class Secret
+{
+    public static string Protect(string plain)
+    {
+        if (string.IsNullOrEmpty(plain)) return "";
+        var data = System.Security.Cryptography.ProtectedData.Protect(System.Text.Encoding.UTF8.GetBytes(plain), null,
+            System.Security.Cryptography.DataProtectionScope.CurrentUser);
+        return Convert.ToBase64String(data);
+    }
+
+    public static string Unprotect(string stored)
+    {
+        if (string.IsNullOrEmpty(stored)) return "";
+        try
+        {
+            var data = System.Security.Cryptography.ProtectedData.Unprotect(Convert.FromBase64String(stored), null,
+                System.Security.Cryptography.DataProtectionScope.CurrentUser);
+            return System.Text.Encoding.UTF8.GetString(data);
+        }
+        catch { return ""; }
+    }
+}
+
 /// <summary>Tiny JSON file store under %AppData%\CyaNotch.</summary>
 public static class Storage
 {
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
         Converters = { new JsonStringEnumConverter() },
     };
 
