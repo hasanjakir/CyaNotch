@@ -626,7 +626,7 @@ public partial class IslandWindow : Window
         }
     }
 
-    private void ApplyMedia(MediaState m)
+    private void ApplyMedia(MediaInfo m)
     {
         var playing = m.HasSession && m.IsPlaying;
 

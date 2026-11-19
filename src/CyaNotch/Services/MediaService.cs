@@ -9,7 +9,7 @@ using Windows.Storage.Streams;
 
 namespace CyaNotch.Services;
 
-public sealed class MediaState
+public sealed class MediaInfo
 {
     public bool HasSession { get; init; }
     public bool IsPlaying { get; init; }
@@ -32,7 +32,7 @@ public sealed class MediaState
         }
     }
 
-    public static readonly MediaState Empty = new();
+    public static readonly MediaInfo Empty = new();
 }
 
 /// <summary>
@@ -46,10 +46,10 @@ public sealed class MediaService
     private string _artKey = "";
     private BitmapImage? _art;
 
-    public MediaState State { get; private set; } = MediaState.Empty;
+    public MediaInfo State { get; private set; } = MediaInfo.Empty;
 
     /// <summary>Raised on a background thread; marshal to the UI.</summary>
-    public event Action<MediaState>? Changed;
+    public event Action<MediaInfo>? Changed;
 
     public async Task StartAsync()
     {
@@ -114,7 +114,7 @@ public sealed class MediaService
         var s = _session;
         if (s == null)
         {
-            Publish(MediaState.Empty);
+            Publish(MediaInfo.Empty);
             return;
         }
 
@@ -131,7 +131,7 @@ public sealed class MediaService
                 _art = await LoadArtAsync(props?.Thumbnail);
             }
 
-            Publish(new MediaState
+            Publish(new MediaInfo
             {
                 HasSession = true,
                 IsPlaying = playback?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing,
@@ -150,7 +150,7 @@ public sealed class MediaService
         }
     }
 
-    private void Publish(MediaState state)
+    private void Publish(MediaInfo state)
     {
         State = state;
         Changed?.Invoke(state);
