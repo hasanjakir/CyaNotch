@@ -277,7 +277,7 @@ public sealed class TaskbarWindow : Window
 
     private UIElement StartButton()
     {
-        var logo = new UniformGrid { Rows = 2, Columns = 2, Width = 18, Height = 18 };
+        var logo = new System.Windows.Controls.Primitives.UniformGrid { Rows = 2, Columns = 2, Width = 18, Height = 18 };
         for (int i = 0; i < 4; i++)
         {
             var sq = new Border { CornerRadius = new CornerRadius(2), Margin = new Thickness(1) };
