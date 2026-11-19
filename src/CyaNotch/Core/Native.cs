@@ -317,9 +317,29 @@ internal static class Native
     private static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
 
     /// <summary>Turns the frosted-glass blur behind the window on or off.</summary>
-    public static void SetBlur(IntPtr hwnd, bool on)
+    public static void SetBlur(IntPtr hwnd, bool on) => SetBackdrop(hwnd, on ? Backdrop.Glass : Backdrop.Solid, 0);
+
+    [DllImport("user32.dll")] private static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
+
+    /// <summary>Keeps the window out of screenshots, recordings and screen sharing (Windows 10 2004+).</summary>
+    public static void HideFromCapture(IntPtr hwnd, bool hide)
     {
-        var accent = new AccentPolicy { AccentState = on ? 3 /* ACCENT_ENABLE_BLURBEHIND */ : 0 };
+        try { SetWindowDisplayAffinity(hwnd, hide ? 0x11u /* WDA_EXCLUDEFROMCAPTURE */ : 0u); } catch { }
+    }
+
+    /// <summary>
+    /// Glass: plain blur of what's behind. Acrylic: blur plus grain and a tint (<paramref name="tint"/>, ARGB),
+    /// like Windows' own menus. Solid: nothing shows through.
+    /// </summary>
+    public static void SetBackdrop(IntPtr hwnd, Backdrop mode, uint tint)
+    {
+        // Accent colour is stored as AABBGGRR.
+        var abgr = (tint & 0xFF000000) | ((tint & 0xFF) << 16) | (tint & 0xFF00) | ((tint >> 16) & 0xFF);
+        var accent = new AccentPolicy
+        {
+            AccentState = mode switch { Backdrop.Glass => 3 /* BLURBEHIND */, Backdrop.Acrylic => 4 /* ACRYLICBLURBEHIND */, _ => 0 },
+            GradientColor = abgr,
+        };
         var size = Marshal.SizeOf(accent);
         var ptr = Marshal.AllocHGlobal(size);
         try

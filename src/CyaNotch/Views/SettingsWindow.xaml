@@ -58,6 +58,17 @@
                     <TextBlock Text="Theme" Margin="0,2,0,6"/>
                     <WrapPanel x:Name="ThemePanel"/>
 
+                    <TextBlock Text="Accent" Margin="0,10,0,4"/>
+                    <TextBlock Text="Colours the visualizer, progress and level bars." Foreground="#8F94A0" FontSize="12" Margin="0,0,0,6"/>
+                    <WrapPanel x:Name="AccentPanel"/>
+
+                    <Grid Margin="0,12,0,0">
+                        <TextBlock Text="Glass tint (Glass, Acrylic, Candy glass)"/>
+                        <TextBlock x:Name="GlassTintText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
+                    </Grid>
+                    <Slider x:Name="GlassTint" Minimum="10" Maximum="90" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
+                    <CheckBox x:Name="HideCapture" Content="Hide the island from screenshots and recordings" Click="Changed"/>
+
                     <TextBlock Text="Shape" Margin="0,12,0,6"/>
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="ShapeFloating" Content="Floating island" GroupName="Shape" Checked="Changed"/>
@@ -72,6 +83,21 @@
                         <RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/>
                     </WrapPanel>
                     <CheckBox x:Name="VizMirror" Content="Grow bars from the middle line" Click="Changed"/>
+
+                    <TextBlock Text="Music progress bar" Margin="0,12,0,6"/>
+                    <WrapPanel>
+                        <RadioButton x:Name="ProgWave" Content="Wave" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgLine" Content="Line" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgBar" Content="Bar" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgDots" Content="Dots" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgGlow" Content="Glow" GroupName="Prog" Checked="Changed"/>
+                    </WrapPanel>
+
+                    <TextBlock Text="When the island opens, show" Margin="0,12,0,6"/>
+                    <WrapPanel>
+                        <RadioButton x:Name="OpenLast" Content="The last tab used" GroupName="OpenOn" Checked="Changed"/>
+                        <RadioButton x:Name="OpenMusic" Content="Music" GroupName="OpenOn" Checked="Changed"/>
+                    </WrapPanel>
                     <CheckBox x:Name="ArtColorsBox" Content="Colour the visualizer and progress from the song's artwork" Click="Changed"/>
                     <CheckBox x:Name="AmbientBox" Content="Soft artwork glow behind the island (dark themes)" Click="Changed"/>
 

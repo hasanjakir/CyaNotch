@@ -16,6 +16,8 @@ public sealed class MediaInfo
     public string Title { get; init; } = "";
     public string Artist { get; init; } = "";
     public string AppName { get; init; } = "";
+    /// <summary>Windows' id for the playing app (e.g. "Spotify.exe", "chrome").</summary>
+    public string AppId { get; init; } = "";
     public BitmapImage? Artwork { get; init; }
     public TimeSpan Position { get; init; }
     public TimeSpan Duration { get; init; }
@@ -138,6 +140,7 @@ public sealed class MediaService
                 Title = props?.Title ?? "",
                 Artist = props?.Artist ?? props?.AlbumArtist ?? "",
                 AppName = FriendlyApp(s.SourceAppUserModelId),
+                AppId = s.SourceAppUserModelId ?? "",
                 Artwork = _art,
                 Position = timeline?.Position ?? TimeSpan.Zero,
                 Duration = timeline == null ? TimeSpan.Zero : timeline.EndTime - timeline.StartTime,

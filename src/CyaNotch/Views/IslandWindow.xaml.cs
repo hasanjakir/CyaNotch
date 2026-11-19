@@ -84,6 +84,8 @@ public partial class IslandWindow : Window
     {
         InitializeComponent();
         MediaProgress.SeekRequested += Progress_Seek;
+        MediaProgress.Look = Settings.Current.ProgressStyle;
+        MediaProgress.Touch = Themes.Current.Touch;
 
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
@@ -129,8 +131,24 @@ public partial class IslandWindow : Window
         // Per-pixel transparency on a normal (non-layered) window, so the window region and blur work together.
         if (_source?.CompositionTarget != null) _source.CompositionTarget.BackgroundColor = Colors.Transparent;
         Native.PrepareGlassWindow(_hwnd);
-        Native.SetBlur(_hwnd, Themes.Current.Glossy);
+        ApplyBackdrop();
         RegisterMicHotkey();
+    }
+
+    /// <summary>
+    /// Lets the desktop show through on Glass/Acrylic themes. Over fullscreen games the island turns
+    /// solid black instead, so it never reads the game's frames.
+    /// </summary>
+    private void ApplyBackdrop()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        var t = Themes.Current;
+        var solidForGame = _mode == Mode.Strip && t.SeeThrough;
+        var tint = (uint)(0x30 << 24 | t.Surface.R << 16 | t.Surface.G << 8 | t.Surface.B);
+        Native.SetBackdrop(_hwnd, solidForGame ? Backdrop.Solid : t.Backdrop, tint);
+        Native.HideFromCapture(_hwnd, Settings.Current.HideFromCapture);
+        if (solidForGame) Island.Background = Brushes.Black;
+        else Island.SetResourceReference(Border.BackgroundProperty, "SurfaceBrush");
     }
 
     private void RegisterMicHotkey()
@@ -287,7 +305,9 @@ public partial class IslandWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             Themes.Apply(Settings.Current.Theme);
-            Native.SetBlur(_hwnd, Themes.Current.Glossy);
+            ApplyBackdrop();
+            MediaProgress.Look = Settings.Current.ProgressStyle;
+            MediaProgress.Touch = Themes.Current.Touch;
             RegisterMicHotkey();
             ScheduleGlance();
             ApplyShape(animate: true);
@@ -319,7 +339,8 @@ public partial class IslandWindow : Window
     }
 
     private static Size PeekSize() => new(400, 64);
-    private static Size ExpandedSize() => new(700, 430);
+    /// <summary>The music tab is a compact card; the other tabs need more room.</summary>
+    private Size ExpandedSize() => TabHome?.IsChecked == true ? new Size(600, 272) : new Size(700, 430);
     private static Size StripSize() => new(440, 24);
     private static Size GlanceSize() => new(470, 34);
     private Size HiddenSize() => new(Settings.Current.CollapsedWidth * 0.6, 0);
@@ -393,6 +414,12 @@ public partial class IslandWindow : Window
     private void Expand(RadioButton? tab = null)
     {
         if (_hiddenByUser) return;
+        if (tab == null && _mode != Mode.Expanded)
+        {
+            // Reopen where the user left off, or always on music.
+            var name = Settings.Current.OpenOn == "Music" ? "TabHome" : Settings.Current.LastTab;
+            tab = FindName(name) as RadioButton ?? TabHome;
+        }
         if (tab != null) tab.IsChecked = true;
         if (_mode == Mode.Expanded) return;
 
@@ -411,6 +438,7 @@ public partial class IslandWindow : Window
             Strip.Visibility = Visibility.Collapsed;
         }
         _mode = Mode.Expanded;
+        ApplyBackdrop();
         UpdateVisibility();
         Fade(Compact, false, 90 * Speed);
         Fade(Peek, false, 90 * Speed);
@@ -423,6 +451,7 @@ public partial class IslandWindow : Window
     private void Collapse()
     {
         if (_mode != Mode.Expanded) return;
+        Settings.SaveQuietly(); // remembers the last tab across restarts
         _mode = Mode.Compact;
         QrOverlay.Visibility = Visibility.Collapsed;
         Keyboard.ClearFocus();
@@ -669,6 +698,7 @@ public partial class IslandWindow : Window
         _mode = Mode.Strip;
         Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out var pid);
         App.Game.Track((int)pid);
+        ApplyBackdrop();
         Fade(Compact, false, 80 * Speed);
         Fade(Strip, true, 160 * Speed, 100 * Speed);
         AnimateTo(StripSize(), bouncy: false);
@@ -680,6 +710,7 @@ public partial class IslandWindow : Window
     {
         App.Game.StopTracking();
         _mode = Mode.Compact;
+        ApplyBackdrop();
         Fade(Strip, false, 80 * Speed);
         Fade(Compact, true, 160 * Speed, 100 * Speed);
         AnimateTo(CompactSize(), bouncy: false);
@@ -992,6 +1023,10 @@ public partial class IslandWindow : Window
     {
         if (PageHome == null) return; // during InitializeComponent
         PageHome.Visibility = TabHome.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageWidgets.Visibility = TabWidgets.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (_mode == Mode.Expanded) AnimateTo(ExpandedSize(), bouncy: false);
+        foreach (var t in new[] { TabHome, TabWidgets, TabClip, TabShelf, TabControls, TabNotes, TabReminders })
+            if (t.IsChecked == true) { Settings.Current.LastTab = t.Name; break; }
         PageClip.Visibility = TabClip.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageShelf.Visibility = TabShelf.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageControls.Visibility = TabControls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -1130,6 +1165,12 @@ public partial class IslandWindow : Window
         MediaTitle.Text = m.HasSession ? m.Title : "Play something in any app";
         MediaArtist.Text = m.Artist;
         MediaArt.ImageSource = m.Artwork;
+        var appIcon = m.HasSession ? AppIcons.ForMediaApp(m.AppId) : null;
+        AppBadge.Visibility = m.HasSession ? Visibility.Visible : Visibility.Collapsed;
+        AppBadgeIcon.Source = appIcon;
+        AppBadgeGlyph.Visibility = appIcon == null ? Visibility.Visible : Visibility.Collapsed;
+        AppBadge.Background = appIcon == null ? (Brush)FindResource("MediaAccentBrush") : new SolidColorBrush(Color.FromArgb(0xE6, 0x10, 0x10, 0x12));
+        LyricsToggle.IsChecked = Settings.Current.LyricsEnabled;
         ArtPlaceholder.Visibility = m.Artwork == null ? Visibility.Visible : Visibility.Collapsed;
         PlayPause.Content = playing ? "" : "";
         MediaProgress.Playing = playing;
@@ -1154,6 +1195,13 @@ public partial class IslandWindow : Window
     private async void Next_Click(object sender, RoutedEventArgs e) => await App.Media.NextAsync();
     private async void Prev_Click(object sender, RoutedEventArgs e) => await App.Media.PreviousAsync();
 
+
+    private void LyricsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        // Turning lyrics on here is the opt-in: songs are looked up on LRCLIB only after this.
+        Settings.Current.LyricsEnabled = LyricsToggle.IsChecked == true;
+        Settings.Save();
+    }
 
     private async void Progress_Seek(double fraction)
     {

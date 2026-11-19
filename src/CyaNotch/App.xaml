@@ -67,6 +67,36 @@
                 </Setter>
             </Style>
 
+            <!-- Lyrics on/off button on the music card -->
+            <Style x:Key="LyricsToggle" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="{DynamicResource SubTextBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+                <Setter Property="FontSize" Value="15"/>
+                <Setter Property="Content" Value="&#xE7C3;"/>
+                <Setter Property="Width" Value="36"/>
+                <Setter Property="Height" Value="36"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="12">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource MediaAccentBrush}"/>
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Pill text button -->
             <Style x:Key="PillButton" TargetType="Button">
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
