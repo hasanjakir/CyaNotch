@@ -118,6 +118,64 @@
                         <TextBlock x:Name="SpeedText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
                     </Grid>
                     <Slider x:Name="Speed" Minimum="0.4" Maximum="2" TickFrequency="0.1" IsSnapToTickEnabled="True" IsDirectionReversed="True" ValueChanged="SliderChanged"/>
+
+                    <Grid Margin="0,14,0,0">
+                        <TextBlock Text="Corners"/>
+                        <TextBlock x:Name="RoundText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
+                    </Grid>
+                    <Slider x:Name="Round" Minimum="0" Maximum="100" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Island -->
+            <TextBlock Style="{StaticResource H}" Text="ISLAND"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid>
+                        <TextBlock Text="At rest, show" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="Resting" HorizontalAlignment="Right" Width="150" SelectionChanged="Changed">
+                            <ComboBoxItem Content="Time"/>
+                            <ComboBoxItem Content="Date"/>
+                            <ComboBoxItem Content="Weather"/>
+                            <ComboBoxItem Content="Battery"/>
+                            <ComboBoxItem Content="CPU"/>
+                            <ComboBoxItem Content="Temperature"/>
+                        </ComboBox>
+                    </Grid>
+
+                    <TextBlock Text="Position" Margin="0,12,0,6"/>
+                    <WrapPanel>
+                        <RadioButton x:Name="SideCentre" Content="Centre" GroupName="Side" Checked="Changed"/>
+                        <RadioButton x:Name="SideLeft" Content="Left" GroupName="Side" Checked="Changed"/>
+                        <RadioButton x:Name="SideRight" Content="Right" GroupName="Side" Checked="Changed"/>
+                    </WrapPanel>
+                    <Grid Margin="0,10,0,0">
+                        <TextBlock Text="Screen" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="MonitorBox" HorizontalAlignment="Right" Width="200" SelectionChanged="Changed"/>
+                    </Grid>
+
+                    <Grid Margin="0,14,0,0">
+                        <TextBlock Text="Open delay"/>
+                        <TextBlock x:Name="DelayText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
+                    </Grid>
+                    <Slider x:Name="Delay" Minimum="0" Maximum="1000" TickFrequency="20" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
+
+                    <Grid Margin="0,10,0,0">
+                        <TextBlock Text="Notifications stay on the island for"/>
+                        <TextBlock x:Name="PeekText" HorizontalAlignment="Right" Foreground="#8F94A0"/>
+                    </Grid>
+                    <Slider x:Name="PeekSecs" Minimum="2" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="SliderChanged"/>
+                    <TextBlock Text="Several at once stack up; scroll on the island to flip through them." Foreground="#8F94A0" FontSize="12" Margin="0,2,0,0"/>
+
+                    <TextBlock Text="Music card follows" Margin="0,14,0,6"/>
+                    <WrapPanel>
+                        <RadioButton x:Name="MediaAll" Content="Every app" GroupName="MediaFilter" Checked="Changed"/>
+                        <RadioButton x:Name="MediaMusic" Content="Music players only" GroupName="MediaFilter" Checked="Changed"/>
+                        <RadioButton x:Name="MediaExcept" Content="Every app except" GroupName="MediaFilter" Checked="Changed"/>
+                    </WrapPanel>
+                    <TextBox x:Name="MediaIgnore" Style="{StaticResource SetField}" Margin="0,6,0,0" LostFocus="Changed"
+                             ToolTip="App names, separated by commas, e.g. Chrome, Edge"/>
+                    <TextBlock x:Name="MediaSeen" Foreground="#8F94A0" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
 
