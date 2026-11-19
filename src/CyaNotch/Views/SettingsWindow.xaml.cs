@@ -39,6 +39,12 @@ public partial class SettingsWindow : Window
             ThemePanel.Children.Add(rb);
         }
 
+        AccentPanel.Children.Clear();
+        AccentPanel.Children.Add(AccentChoice("Theme", null, s.Accent));
+        foreach (var a in Themes.Accents) AccentPanel.Children.Add(AccentChoice(a.Name, a.Color, s.Accent));
+        GlassTint.Value = Math.Round(s.GlassTint * 100);
+        HideCapture.IsChecked = s.HideFromCapture;
+
         ShapeFloating.IsChecked = s.Shape == IslandShape.Floating;
         ShapeNotch.IsChecked = s.Shape == IslandShape.Notch;
         VizBars.IsChecked = s.VisualizerStyle == VisualizerStyle.Bars;
@@ -79,6 +85,28 @@ public partial class SettingsWindow : Window
         ClockZone.ItemsSource = TimeZoneInfo.GetSystemTimeZones();
         RefreshClocks();
         UpdateSliderLabels();
+    }
+
+    /// <summary>A round colour button; "Theme" (no colour) keeps each theme's own accent.</summary>
+    private RadioButton AccentChoice(string name, Color? color, string current)
+    {
+        var dot = new Border
+        {
+            Width = 22, Height = 22, CornerRadius = new CornerRadius(11),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)), BorderThickness = new Thickness(1),
+            Background = color is { } c ? new SolidColorBrush(c)
+                : new LinearGradientBrush(Color.FromRgb(0x40, 0xE0, 0xE8), Color.FromRgb(0xFF, 0x8A, 0xC8), 45),
+        };
+        var rb = new RadioButton
+        {
+            GroupName = "Accent",
+            IsChecked = name == current,
+            ToolTip = name == "Theme" ? "Theme's own colour" : name,
+            Margin = new Thickness(0, 0, 6, 4),
+            Content = dot,
+        };
+        rb.Checked += (_, _) => { if (!_loading) { Settings.Current.Accent = name; Settings.Save(); } };
+        return rb;
     }
 
     private static FrameworkElement ThemeSwatch(ThemeDef t)
@@ -154,7 +182,8 @@ public partial class SettingsWindow : Window
 
     private void UpdateSliderLabels()
     {
-        if (DistanceText == null || WidthText == null || SpeedText == null) return;
+        if (DistanceText == null || WidthText == null || SpeedText == null || GlassTintText == null) return;
+        GlassTintText.Text = $"{GlassTint.Value:0}%";
         DistanceText.Text = $"{Distance.Value:0} px";
         WidthText.Text = $"{IslandWidth.Value:0} px";
         SpeedText.Text = Speed.Value switch
@@ -182,6 +211,8 @@ public partial class SettingsWindow : Window
         s.ArtworkColors = ArtColorsBox.IsChecked == true;
         s.AmbientArtwork = AmbientBox.IsChecked == true;
         s.VisualizerMirrored = VizMirror.IsChecked == true;
+        s.GlassTint = GlassTint.Value / 100;
+        s.HideFromCapture = HideCapture.IsChecked == true;
         s.DistanceFromTop = Distance.Value;
         s.CollapsedWidth = IslandWidth.Value;
         s.AnimationSpeed = Speed.Value;

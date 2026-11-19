@@ -37,6 +37,12 @@ public sealed class Settings
 {
     public IslandShape Shape { get; set; } = IslandShape.Floating;
     public string Theme { get; set; } = "Glass";
+    /// <summary>Accent name from <see cref="Themes.Accents"/>, or "Theme" for the theme's own colour.</summary>
+    public string Accent { get; set; } = "Theme";
+    /// <summary>0..1: how solid see-through surfaces (Glass, Acrylic, Candy glass) are.</summary>
+    public double GlassTint { get; set; } = 0.44;
+    /// <summary>Keep the island out of screenshots, screen recordings and screen sharing.</summary>
+    public bool HideFromCapture { get; set; }
     public double DistanceFromTop { get; set; } = 8;
     /// <summary>1.0 = normal. Lower is faster.</summary>
     public double AnimationSpeed { get; set; } = 1.0;
