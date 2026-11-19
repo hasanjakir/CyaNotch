@@ -110,6 +110,13 @@ public sealed class Settings
     public bool CapturesOnShelf { get; set; } = true;
     /// <summary>Watch Claude Code / Codex sessions and accept agent reports on this PC.</summary>
     public bool AgentsEnabled { get; set; } = true;
+    /// <summary>Replace Windows' taskbar with CyaNotch's bar along the bottom (main screen).</summary>
+    public bool TaskbarEnabled { get; set; }
+    /// <summary>Show every tray icon's app, or keep them behind the arrow.</summary>
+    public bool TaskbarHideWindows { get; set; } = true;
+    // Bookkeeping so Windows' taskbar is always restored, even after a crash.
+    public bool TaskbarHiddenByUs { get; set; }
+    public bool TaskbarWasAutoHide { get; set; }
     public double DistanceFromTop { get; set; } = 8;
     /// <summary>1.0 = normal. Lower is faster.</summary>
     public double AnimationSpeed { get; set; } = 1.0;

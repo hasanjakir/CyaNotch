@@ -48,7 +48,11 @@ public partial class App : Application
         _ownsMutex = true;
 
         DispatcherUnhandledException += OnUiException;
-        AppDomain.CurrentDomain.UnhandledException += (_, a) => Log.Error("Unhandled", a.ExceptionObject as Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, a) =>
+        {
+            Log.Error("Unhandled", a.ExceptionObject as Exception);
+            try { WindowsTaskbar.RestoreWindows(); } catch { }
+        };
 
         base.OnStartup(e);
         Settings.Load();
@@ -65,6 +69,9 @@ public partial class App : Application
         WidgetWindow.RestoreAll();
         Obs.Start();
         Agents.Start();
+        // Also gives Windows' taskbar back if a previous run hid it and then crashed.
+        TaskbarWindow.Apply();
+        Settings.Changed += () => Dispatcher.BeginInvoke(new Action(TaskbarWindow.Apply));
 
         CreateTray();
         Log.Info("CyaNotch started");
@@ -167,6 +174,7 @@ public partial class App : Application
             _tray.Dispose();
         }
         _island?.Shutdown();
+        try { WindowsTaskbar.RestoreWindows(); } catch { }
         Clipboard.Save();
         Audio.Dispose();
         Visualizer.Dispose();
@@ -192,8 +200,15 @@ public partial class App : Application
         }
     }
 
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        try { WindowsTaskbar.RestoreWindows(); } catch { }
+        base.OnSessionEnding(e);
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        try { WindowsTaskbar.RestoreWindows(); } catch { }
         if (_ownsMutex) _single?.ReleaseMutex();
         base.OnExit(e);
     }

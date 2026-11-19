@@ -127,6 +127,16 @@
                 </StackPanel>
             </Border>
 
+            <!-- Taskbar -->
+            <TextBlock Style="{StaticResource H}" Text="TASKBAR"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <CheckBox x:Name="TaskbarOn" Content="Replace the Windows taskbar with a bottom notch" Click="Changed"/>
+                    <CheckBox x:Name="TaskbarHideWin" Content="Hide Windows' own taskbar while it's on" Margin="0,8,0,0" Click="Changed"/>
+                    <TextBlock Text="Windows' taskbar comes back when you turn this off or quit CyaNotch." Opacity="0.55" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
             <!-- Island -->
             <TextBlock Style="{StaticResource H}" Text="ISLAND"/>
             <Border Style="{StaticResource Card}">
