@@ -29,19 +29,19 @@ public sealed class VisualizerService : IDisposable
     private readonly float[] _im = new float[FftSize];
     private static readonly float[] Window = BuildHann();
 
-    public int Bands { get; private set; } = 48;
+    public int Bands { get; } = 64;
     public bool Running => _capture != null;
 
     /// <summary>True when sound has come through in the last half second.</summary>
     public bool HasSound => (DateTime.UtcNow - _lastAudio).TotalMilliseconds < 500;
 
-    public void Start(int bands)
+    /// <summary>Starts listening. The band count is fixed (64); each bar view resamples it to its own width.</summary>
+    public void Start(int bands = 64)
     {
         lock (_gate)
         {
-            if (bands != Bands || _levels.Length != bands)
+            if (_levels.Length != Bands)
             {
-                Bands = Math.Clamp(bands, 8, 128);
                 _levels = new float[Bands];
                 _peaks = new float[Bands];
             }
@@ -133,8 +133,17 @@ public sealed class VisualizerService : IDisposable
     /// <summary>
     /// Call once per rendered frame. Returns smoothed band levels 0..1 (the array is reused).
     /// </summary>
+    private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+    private double _lastReadMs = -1000;
+
     public float[] Read(double dtSeconds)
     {
+        // Several bar views may read in the same frame; only advance the smoothing once.
+        var nowMs = _clock.Elapsed.TotalMilliseconds;
+        if (nowMs - _lastReadMs < 5) return _levels;
+        dtSeconds = Math.Clamp((nowMs - _lastReadMs) / 1000.0, 0.001, 0.1);
+        _lastReadMs = nowMs;
+
         lock (_gate)
         {
             if (_levels.Length != Bands) { _levels = new float[Bands]; _peaks = new float[Bands]; }

@@ -57,9 +57,27 @@ public sealed class VisualizerBars : FrameworkElement
         _lastRender = t;
 
         var viz = App.Visualizer;
-        if (!viz.Running || viz.Bands != DesiredBands) viz.Start(DesiredBands);
-        _levels = viz.Read(dt);
+        if (!viz.Running) viz.Start();
+        _levels = Resample(viz.Read(dt), DesiredBands);
         InvalidateVisual();
+    }
+
+    private float[] _resampled = Array.Empty<float>();
+
+    /// <summary>Stretches the service's bands to this view's bar count (linear interpolation).</summary>
+    private float[] Resample(float[] src, int n)
+    {
+        if (_resampled.Length != n) _resampled = new float[n];
+        if (src.Length == 0) { Array.Clear(_resampled); return _resampled; }
+        for (int i = 0; i < n; i++)
+        {
+            var pos = n == 1 ? 0 : (double)i / (n - 1) * (src.Length - 1);
+            var a = (int)pos;
+            var b = Math.Min(src.Length - 1, a + 1);
+            var f = (float)(pos - a);
+            _resampled[i] = src[a] * (1 - f) + src[b] * f;
+        }
+        return _resampled;
     }
 
     protected override void OnRender(DrawingContext dc)

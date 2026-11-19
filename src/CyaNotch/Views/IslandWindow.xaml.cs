@@ -204,7 +204,7 @@ public partial class IslandWindow : Window
         _fast.Start();
         _slow.Start();
         _hover.Start();
-        App.Visualizer.Start(48); // always listening (cheap) so music without a media session still counts
+        App.Visualizer.Start(); // always listening (cheap) so music without a media session still counts
         ScheduleGlance();
         if (Settings.Current.AutoHide) { _mode = Mode.Hidden; Compact.Opacity = 0; Compact.Visibility = Visibility.Collapsed; AnimateTo(HiddenSize(), animate: false); }
         _weatherTimer.Start();
@@ -319,7 +319,7 @@ public partial class IslandWindow : Window
 
     private static Size PeekSize() => new(400, 64);
     private static Size ExpandedSize() => new(700, 430);
-    private static Size StripSize() => new(380, 24);
+    private static Size StripSize() => new(440, 24);
     private static Size GlanceSize() => new(470, 34);
     private Size HiddenSize() => new(Settings.Current.CollapsedWidth * 0.6, 0);
 
@@ -402,7 +402,6 @@ public partial class IslandWindow : Window
         if (_mode == Mode.Glance)
         {
             _glanceEnd.Stop();
-            StripTime.Visibility = Visibility.Collapsed;
             Strip.Visibility = Visibility.Collapsed;
         }
         if (_mode == Mode.Strip)
@@ -417,6 +416,7 @@ public partial class IslandWindow : Window
         Fade(Expanded, true, 220 * Speed, 120 * Speed);
         AnimateTo(ExpandedSize());
         RefreshExpanded();
+        UpdateCompactLayout();
     }
 
     private void Collapse()
@@ -429,6 +429,7 @@ public partial class IslandWindow : Window
         Fade(Compact, true, 200 * Speed, 160 * Speed);
         AnimateTo(CompactSize(), bouncy: false);
         UpdateVisibility();
+        UpdateCompactLayout();
         if (_peeks.Count > 0) Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(NextPeek));
     }
 
@@ -638,7 +639,6 @@ public partial class IslandWindow : Window
         _gpuTemp = App.Game.GpuTemp();
         _cpuTemp = App.Game.CpuTemp();
         _lastStats ??= App.Sys.Sample();
-        StripTime.Visibility = Visibility.Visible;
         UpdateStrip();
         Fade(Compact, false, 80 * Speed);
         Fade(Strip, true, 180 * Speed, 120 * Speed);
@@ -651,7 +651,6 @@ public partial class IslandWindow : Window
     {
         if (_mode != Mode.Glance) return;
         _mode = Mode.Compact;
-        StripTime.Visibility = Visibility.Collapsed;
         Fade(Strip, false, 80 * Speed);
         Fade(Compact, true, 180 * Speed, 100 * Speed);
         AnimateTo(CompactSize(), bouncy: false);
@@ -732,7 +731,7 @@ public partial class IslandWindow : Window
         var l = _lyrics;
         if (l == null || !l.Synced || !Settings.Current.LyricsEnabled)
         {
-            LyricsBox.Visibility = Visibility.Collapsed;
+            if (LyricsBox.Visibility == Visibility.Visible) { LyricsBox.Visibility = Visibility.Collapsed; UpdateCardViz(); }
             _currentLyric = null;
             return;
         }
@@ -743,7 +742,7 @@ public partial class IslandWindow : Window
         LyricPrev.Text = Line(i - 1);
         LyricNow.Text = i >= 0 ? (Line(i).Length == 0 ? "♪" : Line(i)) : "♪";
         LyricNext.Text = Line(i + 1);
-        LyricsBox.Visibility = Visibility.Visible;
+        if (LyricsBox.Visibility != Visibility.Visible) { LyricsBox.Visibility = Visibility.Visible; UpdateCardViz(); }
     }
 
     // =====================================================================
@@ -935,7 +934,7 @@ public partial class IslandWindow : Window
             _hiddenForFullscreen = wantHide;
             UpdateVisibility();
         }
-        if (!App.Visualizer.Running) App.Visualizer.Start(App.Visualizer.Bands);
+        if (!App.Visualizer.Running) App.Visualizer.Start();
         if (_mode is Mode.Strip or Mode.Glance)
         {
             _gpuTemp = App.Game.GpuTemp();
@@ -993,6 +992,7 @@ public partial class IslandWindow : Window
         PageNotes.Visibility = TabNotes.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageReminders.Visibility = TabReminders.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (TabControls.IsChecked == true) { RefreshControls(); UpdateDeckUi(); }
+        UpdateCardViz();
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
@@ -1009,6 +1009,15 @@ public partial class IslandWindow : Window
     /// Decides what the collapsed pill shows. While music plays the visualizer spans the whole pill;
     /// depending on the setting the title sits on top of it or is hidden.
     /// </summary>
+    /// <summary>The big visualizer in the music card: shown while music plays and no lyrics take the space.</summary>
+    private void UpdateCardViz()
+    {
+        var show = MusicPlaying && LyricsBox.Visibility != Visibility.Visible;
+        CardViz.Mirrored = Settings.Current.VisualizerMirrored;
+        CardViz.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        CardViz.Active = show && _mode == Mode.Expanded && TabHome.IsChecked == true && Island.Visibility == Visibility.Visible;
+    }
+
     private void UpdateCompactLayout()
     {
         var m = App.Media.State;
@@ -1021,6 +1030,7 @@ public partial class IslandWindow : Window
         Viz.Visibility = showViz ? Visibility.Visible : Visibility.Collapsed;
         Viz.Opacity = style == VisualizerStyle.BarsWithTitle ? 0.6 : 1.0;
         Viz.Active = showViz && _mode == Mode.Compact && Island.Visibility == Visibility.Visible;
+        UpdateCardViz();
 
         var art = playing && m.HasSession && m.Artwork != null && !vizOnly;
         CompactArtBox.Visibility = art ? Visibility.Visible : Visibility.Collapsed;
@@ -1078,7 +1088,9 @@ public partial class IslandWindow : Window
         var unit = Settings.Current.UseFahrenheit ? "°F" : "°C";
         WeatherIcon.Text = w.Glyph;
         WeatherTemp.Text = $"{w.Temp:0}{unit}  {w.Description}";
-        WeatherDesc.Text = $"{w.Place} · H {w.High:0}° L {w.Low:0}°";
+        WeatherDesc.Text = $"H {w.High:0}°  ·  L {w.Low:0}°";
+        WeatherPlace.Text = w.Place;
+        WeatherPlace.Visibility = Visibility.Visible;
     }
 
     private void Weather_Click(object sender, MouseButtonEventArgs e)

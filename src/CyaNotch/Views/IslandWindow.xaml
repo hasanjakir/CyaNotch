@@ -219,7 +219,7 @@
 
                 <!-- ============ GAME STRIP (fullscreen games) ============ -->
                 <StackPanel x:Name="Strip" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" TextElement.FontSize="11.5">
-                    <TextBlock x:Name="StripTime" FontWeight="SemiBold" Margin="0,0,12,0" Visibility="Collapsed"/>
+                    <TextBlock x:Name="StripTime" FontWeight="SemiBold" Margin="0,0,12,0"/>
                     <TextBlock x:Name="StripFps" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
                     <TextBlock x:Name="StripCpu" Margin="0,0,10,0"/>
                     <TextBlock x:Name="StripGpu" Margin="0,0,10,0"/>
@@ -321,6 +321,9 @@
                                         </StackPanel>
                                     </Grid>
 
+                                    <local:VisualizerBars x:Name="CardViz" Grid.Row="1" Margin="0,12,0,0" MinHeight="36" Pitch="7"
+                                                          BarBrush="{DynamicResource VizBrush}" Visibility="Collapsed"/>
+
                                     <StackPanel x:Name="LyricsBox" Grid.Row="1" VerticalAlignment="Center" Margin="0,10,0,0" Visibility="Collapsed">
                                         <TextBlock x:Name="LyricPrev" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis" Opacity="0.7"/>
                                         <TextBlock x:Name="LyricNow" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis" Margin="0,2"/>
@@ -365,7 +368,8 @@
                                             <TextBlock x:Name="WeatherIcon" Style="{StaticResource Icon}" FontSize="20" Text="&#xE706;" Foreground="{DynamicResource AccentBrush}"/>
                                             <StackPanel Margin="8,0,0,0">
                                                 <TextBlock x:Name="WeatherTemp" FontWeight="SemiBold" Text="Set your city"/>
-                                                <TextBlock x:Name="WeatherDesc" Style="{StaticResource Sub}" Text="in Settings"/>
+                                                <TextBlock x:Name="WeatherDesc" Style="{StaticResource Sub}" Text="in Settings" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock x:Name="WeatherPlace" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis" Visibility="Collapsed"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </StackPanel>

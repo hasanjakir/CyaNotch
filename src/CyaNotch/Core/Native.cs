@@ -13,6 +13,8 @@ internal static class Native
     public const int WM_DPICHANGED = 0x02E0;
 
     public const int GWL_EXSTYLE = -20;
+    public const int GWL_STYLE = -16;
+    public const int WS_CAPTION = 0x00C00000;
     public const int WS_EX_TOOLWINDOW = 0x00000080;
     public const int WS_EX_NOACTIVATE = 0x08000000;
     public const int WS_EX_APPWINDOW = 0x00040000;
@@ -346,6 +348,11 @@ internal static class Native
         GetClassName(fg, sb, sb.Capacity);
         var cls = sb.ToString();
         if (cls is "Progman" or "WorkerW" or "Shell_TrayWnd") return false;
+
+        // A maximised normal window (with a title bar) is not fullscreen, even when the taskbar
+        // auto-hides and the window covers the whole screen.
+        var style = GetWindowLong(fg, GWL_STYLE);
+        if ((style & WS_CAPTION) == WS_CAPTION) return false;
 
         if (!GetWindowRect(fg, out var r)) return false;
         var mon = MonitorFromWindow(fg, 2 /* MONITOR_DEFAULTTONEAREST */);
