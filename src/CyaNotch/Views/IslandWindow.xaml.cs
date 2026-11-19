@@ -50,7 +50,7 @@ public partial class IslandWindow : Window
     private DateTime? _callStart;
 
     // Media
-    private bool _seeking;
+    private object? _accentFor;   // artwork the current media accent was taken from
 
     // Shelf drag
     private Point _dragStart;
@@ -83,6 +83,7 @@ public partial class IslandWindow : Window
     public IslandWindow()
     {
         InitializeComponent();
+        MediaProgress.SeekRequested += Progress_Seek;
 
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
@@ -204,7 +205,7 @@ public partial class IslandWindow : Window
         _fast.Start();
         _slow.Start();
         _hover.Start();
-        App.Visualizer.Start(48); // always listening (cheap) so music without a media session still counts
+        App.Visualizer.Start(); // always listening (cheap) so music without a media session still counts
         ScheduleGlance();
         if (Settings.Current.AutoHide) { _mode = Mode.Hidden; Compact.Opacity = 0; Compact.Visibility = Visibility.Collapsed; AnimateTo(HiddenSize(), animate: false); }
         _weatherTimer.Start();
@@ -311,7 +312,7 @@ public partial class IslandWindow : Window
         var w = Settings.Current.CollapsedWidth;
         var h = Settings.Current.CollapsedHeight;
         var m = App.Media.State;
-        if (MusicPlaying) w += Settings.Current.VisualizerStyle == VisualizerStyle.Off ? 70 : 130;
+        if (MusicPlaying) w += Settings.Current.VisualizerStyle switch { VisualizerStyle.Off => 70, VisualizerStyle.Dots => 40, _ => 130 };
         if (_callStart != null) w += 40;
         if (_timerEnd != null) w += 30;
         return new Size(w, h);
@@ -319,7 +320,7 @@ public partial class IslandWindow : Window
 
     private static Size PeekSize() => new(400, 64);
     private static Size ExpandedSize() => new(700, 430);
-    private static Size StripSize() => new(380, 24);
+    private static Size StripSize() => new(440, 24);
     private static Size GlanceSize() => new(470, 34);
     private Size HiddenSize() => new(Settings.Current.CollapsedWidth * 0.6, 0);
 
@@ -402,7 +403,6 @@ public partial class IslandWindow : Window
         if (_mode == Mode.Glance)
         {
             _glanceEnd.Stop();
-            StripTime.Visibility = Visibility.Collapsed;
             Strip.Visibility = Visibility.Collapsed;
         }
         if (_mode == Mode.Strip)
@@ -417,6 +417,7 @@ public partial class IslandWindow : Window
         Fade(Expanded, true, 220 * Speed, 120 * Speed);
         AnimateTo(ExpandedSize());
         RefreshExpanded();
+        UpdateCompactLayout();
     }
 
     private void Collapse()
@@ -429,6 +430,7 @@ public partial class IslandWindow : Window
         Fade(Compact, true, 200 * Speed, 160 * Speed);
         AnimateTo(CompactSize(), bouncy: false);
         UpdateVisibility();
+        UpdateCompactLayout();
         if (_peeks.Count > 0) Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(NextPeek));
     }
 
@@ -638,7 +640,6 @@ public partial class IslandWindow : Window
         _gpuTemp = App.Game.GpuTemp();
         _cpuTemp = App.Game.CpuTemp();
         _lastStats ??= App.Sys.Sample();
-        StripTime.Visibility = Visibility.Visible;
         UpdateStrip();
         Fade(Compact, false, 80 * Speed);
         Fade(Strip, true, 180 * Speed, 120 * Speed);
@@ -651,7 +652,6 @@ public partial class IslandWindow : Window
     {
         if (_mode != Mode.Glance) return;
         _mode = Mode.Compact;
-        StripTime.Visibility = Visibility.Collapsed;
         Fade(Strip, false, 80 * Speed);
         Fade(Compact, true, 180 * Speed, 100 * Speed);
         AnimateTo(CompactSize(), bouncy: false);
@@ -732,7 +732,7 @@ public partial class IslandWindow : Window
         var l = _lyrics;
         if (l == null || !l.Synced || !Settings.Current.LyricsEnabled)
         {
-            LyricsBox.Visibility = Visibility.Collapsed;
+            if (LyricsBox.Visibility == Visibility.Visible) { LyricsBox.Visibility = Visibility.Collapsed; UpdateCardViz(); }
             _currentLyric = null;
             return;
         }
@@ -743,7 +743,7 @@ public partial class IslandWindow : Window
         LyricPrev.Text = Line(i - 1);
         LyricNow.Text = i >= 0 ? (Line(i).Length == 0 ? "♪" : Line(i)) : "♪";
         LyricNext.Text = Line(i + 1);
-        LyricsBox.Visibility = Visibility.Visible;
+        if (LyricsBox.Visibility != Visibility.Visible) { LyricsBox.Visibility = Visibility.Visible; UpdateCardViz(); }
     }
 
     // =====================================================================
@@ -849,13 +849,18 @@ public partial class IslandWindow : Window
 
         // Media progress
         var m = App.Media.State;
-        if (_mode == Mode.Expanded && m.HasSession && !_seeking && m.Duration > TimeSpan.Zero)
+        if (_mode == Mode.Expanded && m.HasSession && !MediaProgress.IsDragging && m.Duration > TimeSpan.Zero)
         {
-            var pos = m.LivePosition;
-            MediaProgress.Maximum = m.Duration.TotalSeconds;
-            MediaProgress.Value = Math.Min(pos.TotalSeconds, m.Duration.TotalSeconds);
+            var pos = m.LivePosition > m.Duration ? m.Duration : m.LivePosition;
+            MediaProgress.Value = pos.TotalSeconds / m.Duration.TotalSeconds;
             MediaPos.Text = Fmt(pos);
-            MediaDur.Text = Fmt(m.Duration);
+            MediaDur.Text = "-" + Fmt(m.Duration - pos);
+        }
+        if (_mode == Mode.Expanded && !CardVolume.IsMouseCaptureWithin)
+        {
+            _syncingCardVolume = true;
+            CardVolume.Value = App.Audio.Volume * 100;
+            _syncingCardVolume = false;
         }
 
         // Call timer
@@ -935,7 +940,7 @@ public partial class IslandWindow : Window
             _hiddenForFullscreen = wantHide;
             UpdateVisibility();
         }
-        if (!App.Visualizer.Running) App.Visualizer.Start(App.Visualizer.Bands);
+        if (!App.Visualizer.Running) App.Visualizer.Start();
         if (_mode is Mode.Strip or Mode.Glance)
         {
             _gpuTemp = App.Game.GpuTemp();
@@ -993,6 +998,7 @@ public partial class IslandWindow : Window
         PageNotes.Visibility = TabNotes.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageReminders.Visibility = TabReminders.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (TabControls.IsChecked == true) { RefreshControls(); UpdateDeckUi(); }
+        UpdateCardViz();
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
@@ -1009,23 +1015,64 @@ public partial class IslandWindow : Window
     /// Decides what the collapsed pill shows. While music plays the visualizer spans the whole pill;
     /// depending on the setting the title sits on top of it or is hidden.
     /// </summary>
+    /// <summary>
+    /// Soft blur of the artwork behind the island while music plays. Only on dark themes,
+    /// where it reads as coloured glass; light themes keep their own surface.
+    /// </summary>
+    private void UpdateAmbient()
+    {
+        var m = App.Media.State;
+        var t = Themes.Current.Text;
+        var darkTheme = t.R + t.G + t.B > 3 * 128;
+        var show = Settings.Current.AmbientArtwork && darkTheme && MusicPlaying && m.HasSession && m.Artwork != null
+                   && _mode is Mode.Compact or Mode.Expanded or Mode.Peek;
+        if (show == (Ambient.Visibility == Visibility.Visible)) return;
+        if (show)
+        {
+            Ambient.Visibility = Visibility.Visible;
+            Ambient.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(400)));
+        }
+        else
+        {
+            var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(250));
+            fade.Completed += (_, _) => { if (Ambient.Opacity < 0.01) Ambient.Visibility = Visibility.Collapsed; };
+            Ambient.BeginAnimation(OpacityProperty, fade);
+        }
+    }
+
+    /// <summary>The big visualizer in the music card: shown while music plays and no lyrics take the space.</summary>
+    private void UpdateCardViz()
+    {
+        var show = MusicPlaying && LyricsBox.Visibility != Visibility.Visible;
+        CardViz.Mirrored = Settings.Current.VisualizerMirrored;
+        CardViz.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        CardViz.Active = show && _mode == Mode.Expanded && TabHome.IsChecked == true && Island.Visibility == Visibility.Visible;
+    }
+
     private void UpdateCompactLayout()
     {
         var m = App.Media.State;
         var playing = MusicPlaying;
         var style = Settings.Current.VisualizerStyle;
-        var showViz = playing && style != VisualizerStyle.Off;
+        var dots = playing && style == VisualizerStyle.Dots;
+        var showViz = playing && style is VisualizerStyle.Bars or VisualizerStyle.BarsWithTitle;
         var vizOnly = showViz && style == VisualizerStyle.Bars;
+        var compactVisible = _mode == Mode.Compact && Island.Visibility == Visibility.Visible;
 
         Viz.Mirrored = Settings.Current.VisualizerMirrored;
         Viz.Visibility = showViz ? Visibility.Visible : Visibility.Collapsed;
         Viz.Opacity = style == VisualizerStyle.BarsWithTitle ? 0.6 : 1.0;
-        Viz.Active = showViz && _mode == Mode.Compact && Island.Visibility == Visibility.Visible;
+        Viz.Active = showViz && compactVisible;
+        DotViz.Visibility = dots ? Visibility.Visible : Visibility.Collapsed;
+        DotViz.Active = dots && compactVisible;
+        UpdateCardViz();
+        UpdateAmbient();
 
         var art = playing && m.HasSession && m.Artwork != null && !vizOnly;
         CompactArtBox.Visibility = art ? Visibility.Visible : Visibility.Collapsed;
         CompactIcon.Visibility = art || vizOnly ? Visibility.Collapsed : Visibility.Visible;
-        CompactText.Visibility = vizOnly ? Visibility.Hidden : Visibility.Visible;
+        // Dot style keeps the pill clean: artwork on the left, dots on the right, nothing in between.
+        CompactText.Visibility = vizOnly || (dots && art) ? Visibility.Hidden : Visibility.Visible;
     }
 
     private void ApplyMedia(MediaInfo m)
@@ -1046,10 +1093,19 @@ public partial class IslandWindow : Window
         MediaArt.ImageSource = m.Artwork;
         ArtPlaceholder.Visibility = m.Artwork == null ? Visibility.Visible : Visibility.Collapsed;
         PlayPause.Content = playing ? "" : "";
+        MediaProgress.Playing = playing;
         if (m.Duration <= TimeSpan.Zero)
         {
             MediaProgress.Value = 0;
             MediaPos.Text = MediaDur.Text = "";
+        }
+
+        // Colours from the artwork
+        AmbientArt.ImageSource = m.Artwork;
+        if (!ReferenceEquals(_accentFor, m.Artwork))
+        {
+            _accentFor = m.Artwork;
+            Themes.ApplyMediaAccent(m.HasSession ? ArtColors.Accent(m.Artwork) : null);
         }
 
         if (_mode == Mode.Compact) AnimateTo(CompactSize());
@@ -1059,14 +1115,19 @@ public partial class IslandWindow : Window
     private async void Next_Click(object sender, RoutedEventArgs e) => await App.Media.NextAsync();
     private async void Prev_Click(object sender, RoutedEventArgs e) => await App.Media.PreviousAsync();
 
-    private void Progress_Down(object sender, MouseButtonEventArgs e) => _seeking = true;
 
-    private async void Progress_Up(object sender, MouseButtonEventArgs e)
+    private async void Progress_Seek(double fraction)
     {
-        // Let the slider move to the click point first.
-        await Task.Delay(30);
-        await App.Media.SeekAsync(TimeSpan.FromSeconds(MediaProgress.Value));
-        _seeking = false;
+        var m = App.Media.State;
+        if (m.Duration > TimeSpan.Zero) await App.Media.SeekAsync(TimeSpan.FromSeconds(fraction * m.Duration.TotalSeconds));
+    }
+
+    private bool _syncingCardVolume;
+
+    private void CardVolume_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_syncingCardVolume || !IsLoaded) return;
+        App.Audio.Volume = e.NewValue / 100;
     }
 
     // =====================================================================
@@ -1078,7 +1139,9 @@ public partial class IslandWindow : Window
         var unit = Settings.Current.UseFahrenheit ? "°F" : "°C";
         WeatherIcon.Text = w.Glyph;
         WeatherTemp.Text = $"{w.Temp:0}{unit}  {w.Description}";
-        WeatherDesc.Text = $"{w.Place} · H {w.High:0}° L {w.Low:0}°";
+        WeatherDesc.Text = $"H {w.High:0}°  ·  L {w.Low:0}°";
+        WeatherPlace.Text = w.Place;
+        WeatherPlace.Visibility = Visibility.Visible;
     }
 
     private void Weather_Click(object sender, MouseButtonEventArgs e)

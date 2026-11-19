@@ -44,6 +44,9 @@ public partial class SettingsWindow : Window
         VizBars.IsChecked = s.VisualizerStyle == VisualizerStyle.Bars;
         VizTitle.IsChecked = s.VisualizerStyle == VisualizerStyle.BarsWithTitle;
         VizOff.IsChecked = s.VisualizerStyle == VisualizerStyle.Off;
+        VizDots.IsChecked = s.VisualizerStyle == VisualizerStyle.Dots;
+        ArtColorsBox.IsChecked = s.ArtworkColors;
+        AmbientBox.IsChecked = s.AmbientArtwork;
         VizMirror.IsChecked = s.VisualizerMirrored;
         Distance.Value = s.DistanceFromTop;
         IslandWidth.Value = s.CollapsedWidth;
@@ -174,7 +177,10 @@ public partial class SettingsWindow : Window
         var s = Settings.Current;
         s.Shape = ShapeNotch.IsChecked == true ? IslandShape.Notch : IslandShape.Floating;
         s.VisualizerStyle = VizTitle.IsChecked == true ? VisualizerStyle.BarsWithTitle
-                          : VizOff.IsChecked == true ? VisualizerStyle.Off : VisualizerStyle.Bars;
+                          : VizOff.IsChecked == true ? VisualizerStyle.Off
+                          : VizDots.IsChecked == true ? VisualizerStyle.Dots : VisualizerStyle.Bars;
+        s.ArtworkColors = ArtColorsBox.IsChecked == true;
+        s.AmbientArtwork = AmbientBox.IsChecked == true;
         s.VisualizerMirrored = VizMirror.IsChecked == true;
         s.DistanceFromTop = Distance.Value;
         s.CollapsedWidth = IslandWidth.Value;

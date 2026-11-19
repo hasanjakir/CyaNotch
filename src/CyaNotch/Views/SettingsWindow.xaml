@@ -65,12 +65,15 @@
                     </StackPanel>
 
                     <TextBlock Text="Music visualizer in the pill" Margin="0,12,0,6"/>
-                    <StackPanel Orientation="Horizontal">
+                    <WrapPanel>
                         <RadioButton x:Name="VizBars" Content="Bars across the pill" GroupName="Viz" Checked="Changed"/>
                         <RadioButton x:Name="VizTitle" Content="Bars with song title" GroupName="Viz" Checked="Changed"/>
+                        <RadioButton x:Name="VizDots" Content="Small dots" GroupName="Viz" Checked="Changed"/>
                         <RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/>
-                    </StackPanel>
+                    </WrapPanel>
                     <CheckBox x:Name="VizMirror" Content="Grow bars from the middle line" Click="Changed"/>
+                    <CheckBox x:Name="ArtColorsBox" Content="Colour the visualizer and progress from the song's artwork" Click="Changed"/>
+                    <CheckBox x:Name="AmbientBox" Content="Soft artwork glow behind the island (dark themes)" Click="Changed"/>
 
                     <Grid Margin="0,14,0,0">
                         <TextBlock Text="Distance from top"/>

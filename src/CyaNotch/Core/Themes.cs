@@ -68,15 +68,44 @@ public static class Themes
         edge.Freeze();
         r["SurfaceEdgeBrush"] = edge;
 
-        // Visualizer bars: accent fading into a second hue.
-        var second = t.Glossy ? Color.FromRgb(0xA7, 0x8B, 0xFA) : Color.FromArgb(0xFF, (byte)(t.Accent.R * 0.7), (byte)(t.Accent.G * 0.7), (byte)(t.Accent.B * 0.7));
+        r["VizBrush"] = VizGradient(t.Accent, t.Glossy ? Color.FromRgb(0xA7, 0x8B, 0xFA) : Dim(t.Accent, 0.7));
+        ApplyMediaAccent(_mediaAccent);
+    }
+
+    private static Color? _mediaAccent;
+
+    /// <summary>
+    /// Colour taken from the song's artwork. It tints the visualizer and the progress line;
+    /// null falls back to the theme's accent.
+    /// </summary>
+    public static void ApplyMediaAccent(Color? art)
+    {
+        _mediaAccent = art;
+        var r = Application.Current.Resources;
+        if (art is { } a && Settings.Current.ArtworkColors)
+        {
+            r["MediaAccentBrush"] = Brush(a);
+            r["MediaVizBrush"] = VizGradient(a, Dim(a, 0.72));
+        }
+        else
+        {
+            r["MediaAccentBrush"] = r["AccentBrush"];
+            r["MediaVizBrush"] = r["VizBrush"];
+        }
+    }
+
+    /// <summary>Accent in the middle fading into a second hue at both ends.</summary>
+    private static LinearGradientBrush VizGradient(Color main, Color second)
+    {
         var viz = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 0) };
         viz.GradientStops.Add(new GradientStop(second, 0));
-        viz.GradientStops.Add(new GradientStop(t.Accent, 0.5));
+        viz.GradientStops.Add(new GradientStop(main, 0.5));
         viz.GradientStops.Add(new GradientStop(second, 1));
         viz.Freeze();
-        r["VizBrush"] = viz;
+        return viz;
     }
+
+    private static Color Dim(Color c, double f) => Color.FromRgb((byte)(c.R * f), (byte)(c.G * f), (byte)(c.B * f));
 
     private static Color C(byte a, byte r, byte g, byte b) => Color.FromArgb(a, r, g, b);
 
