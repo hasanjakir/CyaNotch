@@ -34,9 +34,9 @@ public partial class CallsPage : UserControl
     {
         var muted = App.Audio.MicMuted;
         MicGlyph.Text = muted ? "" : "";
-        MicBtn.Background = muted ? (Brush)FindResource("DangerBrush") : (Brush)FindResource("CardBrush");
+        MicBtn.Background = muted ? (Brush)FindResource("DangerBrush") : new SolidColorBrush(Color.FromArgb(0x26, 0x3D, 0xDC, 0x84));
         MicGlyph.Foreground = muted ? Brushes.White : (Brush)FindResource("TextBrush");
-        MicState.Text = muted ? "Mic muted in every app" : "Mic on";
+        MicState.Text = muted ? "Mic muted\nClick to unmute" : "Mic on\nClick to mute";
         InUse.Text = App.Audio.IsMicInUse() ? "An app is using your mic" : "";
         MicName.Text = App.Audio.MicName;
         SpeakerName.Text = App.Audio.SpeakerName;
@@ -82,7 +82,7 @@ public partial class CallsPage : UserControl
         try { _capture?.StopRecording(); _capture?.Dispose(); } catch { }
         _capture = null;
         _peak = 0;
-        MicTestBtn.Content = "Test mic";
+        MicTestBtn.Content = "Test";
     }
 
     private static float Peak(byte[] buf, int count, WaveFormat fmt)
@@ -115,4 +115,12 @@ public partial class CallsPage : UserControl
             Log.Error("Speaker test failed", ex);
         }
     }
+
+    private void CheckCamera_Click(object sender, RoutedEventArgs e)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("microsoft.windows.camera:") { UseShellExecute = true }); }
+        catch (Exception ex) { Log.Error("Camera app failed", ex); }
+    }
+
+    private void SoundSettings_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => Services.SystemService.OpenSettings("sound");
 }

@@ -13,6 +13,50 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolVis"/>
 
+        <!-- Clipboard card: coloured label strip, then the text or picture -->
+        <DataTemplate x:Key="ClipCard">
+            <Border x:Name="Card" Width="148"
+                    CornerRadius="14" Background="#16FFFFFF" Margin="0,0,7,0" ClipToBounds="True"
+                    Cursor="Hand" MouseLeftButtonUp="Clip_Click" ToolTip="Click to paste">
+                <Grid>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" Background="{Binding HeaderBrush}" Padding="9,4" CornerRadius="14,14,0,0">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="{Binding Glyph}" FontSize="11" Foreground="{Binding KindBrush}" Margin="0,0,5,0"/>
+                                    <TextBlock Text="{Binding KindLabel}" FontSize="11.5" FontWeight="SemiBold" Foreground="{Binding KindBrush}"/>
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE840;" FontSize="9" Foreground="{Binding KindBrush}" Margin="5,0,0,0" VerticalAlignment="Center"
+                                               Visibility="{Binding Pinned, Converter={StaticResource BoolVis}}" ToolTip="Saved as a snippet"/>
+                                </StackPanel>
+                                <TextBlock x:Name="AgeText" Text="{Binding Age}" FontSize="11" Foreground="{DynamicResource SubTextBrush}" HorizontalAlignment="Right"/>
+                                <StackPanel x:Name="Actions" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="Collapsed" Margin="0,-3,-5,-3">
+                                    <Button Style="{StaticResource IconButton}" Width="20" Height="20" FontSize="10" Content="&#xE8EC;" ToolTip="Save as snippet / unsave" Click="ClipPin_Click"/>
+                                    <Button Style="{StaticResource IconButton}" Width="20" Height="20" FontSize="10" Content="&#xE74D;" ToolTip="Delete" Click="ClipDelete_Click"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <TextBlock DockPanel.Dock="Bottom" Text="{Binding Detail}" Style="{StaticResource Sub}" FontSize="10.5" Margin="9,0,9,6" TextTrimming="CharacterEllipsis"/>
+                        <Grid Margin="0,0,0,4">
+                            <Border CornerRadius="0" Margin="0">
+                                <Border.Background>
+                                    <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                                </Border.Background>
+                            </Border>
+                            <TextBlock Text="{Binding Preview}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Margin="9,6,9,0"
+                                       Visibility="{Binding IsText, Converter={StaticResource BoolVis}}"/>
+                        </Grid>
+                    </DockPanel>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Card" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Card" Property="Background" Value="#22FFFFFF"/>
+                    <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="AgeText" Property="Visibility" Value="Hidden"/>
+                </Trigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
         <!-- Clipboard row -->
         <DataTemplate x:Key="ClipRow">
             <Border x:Name="Row" Background="Transparent" CornerRadius="12" Padding="10,8" Margin="0,1"
@@ -544,22 +588,29 @@
 
                         <!-- ===== CLIPBOARD ===== -->
                         <DockPanel x:Name="PageClip" Visibility="Collapsed">
-                            <Grid DockPanel.Dock="Top" Margin="4,0,4,6">
+                            <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                     <RadioButton Style="{StaticResource Chip}" Content="All" Tag="All" IsChecked="True" GroupName="ClipFilter" Checked="ClipFilter_Checked"/>
-                                    <RadioButton Style="{StaticResource Chip}" Content="Pinned" Tag="Pinned" GroupName="ClipFilter" Checked="ClipFilter_Checked"/>
-                                    <RadioButton Style="{StaticResource Chip}" Content="Text" Tag="Text" GroupName="ClipFilter" Checked="ClipFilter_Checked"/>
-                                    <RadioButton Style="{StaticResource Chip}" Content="Links" Tag="Link" GroupName="ClipFilter" Checked="ClipFilter_Checked"/>
                                     <RadioButton Style="{StaticResource Chip}" Content="Images" Tag="Image" GroupName="ClipFilter" Checked="ClipFilter_Checked"/>
                                     <RadioButton Style="{StaticResource Chip}" Content="Files" Tag="Files" GroupName="ClipFilter" Checked="ClipFilter_Checked"/>
+                                    <RadioButton Style="{StaticResource Chip}" Content="Snippets" Tag="Pinned" GroupName="ClipFilter" Checked="ClipFilter_Checked"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <TextBox x:Name="ClipSearch" Style="{StaticResource Field}" Width="160" Tag="Search" TextChanged="ClipSearch_Changed"/>
-                                    <Button Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Clear all except pinned" Click="ClipClear_Click" Margin="4,0,0,0"/>
+                                    <TextBox x:Name="ClipSearch" Style="{StaticResource Field}" Width="0" Visibility="Collapsed" Tag="Search" FontSize="11" TextChanged="ClipSearch_Changed"/>
+                                    <Button Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="11" Content="&#xE721;" ToolTip="Search" Click="ClipSearchToggle_Click"/>
+                                    <Button Style="{StaticResource PillButton}" Padding="9,3" Content="Clear" ToolTip="Clear all except snippets" Click="ClipClear_Click" Margin="2,0,0,0"/>
                                 </StackPanel>
                             </Grid>
                             <Grid>
-                                <ListBox x:Name="ClipList" Style="{StaticResource PlainList}" ItemTemplate="{StaticResource ClipRow}"/>
+                                <ListBox x:Name="ClipList" Style="{StaticResource PlainList}" ItemTemplate="{StaticResource ClipCard}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                         PreviewMouseWheel="ClipList_Wheel">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                </ListBox>
                                 <TextBlock x:Name="ClipEmpty" Style="{StaticResource Sub}" HorizontalAlignment="Center" VerticalAlignment="Center" Text="Copy something and it shows up here." Visibility="Collapsed"/>
                             </Grid>
                         </DockPanel>
@@ -567,15 +618,15 @@
                         <!-- ===== SHELF ===== -->
                         <Grid x:Name="PageShelf" Visibility="Collapsed">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="104"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <DockPanel Margin="0,0,8,0">
-                                <Button DockPanel.Dock="Bottom" Style="{StaticResource PillButton}" Content="+ New folder" Click="ShelfNewFolder_Click" Margin="0,6,0,0"/>
+                            <DockPanel Margin="0,0,6,0">
+                                <Button DockPanel.Dock="Bottom" Style="{StaticResource PillButton}" Content="+ Folder" FontSize="11" Click="ShelfNewFolder_Click" Margin="0,6,0,0"/>
                                 <ListBox x:Name="FolderList" Style="{StaticResource PlainList}" SelectionChanged="Folder_Changed">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border x:Name="Row" CornerRadius="10" Padding="10,7" Margin="0,1" Background="Transparent" Cursor="Hand"
+                                            <Border x:Name="Row" CornerRadius="10" Padding="7,5" Margin="0,1" Background="Transparent" Cursor="Hand"
                                                     AllowDrop="True" Drop="Folder_Drop" MouseLeftButtonUp="Folder_Click">
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
@@ -722,34 +773,34 @@
                         <Grid x:Name="PageReminders" Visibility="Collapsed">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="230"/>
+                                <ColumnDefinition Width="140"/>
                             </Grid.ColumnDefinitions>
-                            <DockPanel Margin="0,0,10,0">
+                            <DockPanel Margin="0,0,6,0">
                                 <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="62"/>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox x:Name="ReminderText" Style="{StaticResource Field}" Tag="Remind me to…" KeyDown="ReminderInput_KeyDown"/>
-                                    <TextBox x:Name="ReminderWhen" Grid.Column="1" Style="{StaticResource Field}" Tag="in 10m / 5pm" Margin="4,0,0,0" KeyDown="ReminderInput_KeyDown"/>
-                                    <ComboBox x:Name="ReminderRepeat" Grid.Column="2" Margin="4,0,0,0" Width="90" VerticalContentAlignment="Center" SelectedIndex="0">
+                                    <TextBox x:Name="ReminderText" Style="{StaticResource Field}" Tag="Remind me to…" FontSize="11" KeyDown="ReminderInput_KeyDown"/>
+                                    <TextBox x:Name="ReminderWhen" Grid.Column="1" Style="{StaticResource Field}" Tag="20m" FontSize="11" Margin="4,0,0,0" KeyDown="ReminderInput_KeyDown"/>
+                                    <ComboBox x:Name="ReminderRepeat" Grid.Column="2" Margin="4,0,0,0" Width="0" Visibility="Collapsed" VerticalContentAlignment="Center" SelectedIndex="0">
                                         <ComboBoxItem Content="Once"/>
                                         <ComboBoxItem Content="Daily"/>
                                         <ComboBoxItem Content="Weekdays"/>
                                         <ComboBoxItem Content="Weekly"/>
                                         <ComboBoxItem Content="Monthly"/>
                                     </ComboBox>
-                                    <Button Grid.Column="3" Style="{StaticResource AccentPill}" Content="Add" Margin="4,0,0,0" Click="ReminderAdd_Click"/>
+                                    <Button Grid.Column="3" Style="{StaticResource AccentPill}" Padding="9,3" Content="Add" Margin="4,0,0,0" Click="ReminderAdd_Click"/>
                                 </Grid>
-                                <TextBlock x:Name="ReminderHint" DockPanel.Dock="Top" Style="{StaticResource Sub}" Margin="4,0,0,4" Text="Try: in 20m, at 6pm, tomorrow 9am, 17:30"/>
+                                <TextBlock x:Name="ReminderHint" DockPanel.Dock="Top" Style="{StaticResource Sub}" FontSize="10.5" Margin="4,0,0,4" Text="Try 20m, 6pm, tomorrow 9am"/>
                                 <ListBox x:Name="ReminderList" Style="{StaticResource PlainList}" ItemTemplate="{StaticResource ReminderRow}"/>
                             </DockPanel>
-                            <Border Grid.Column="1" Style="{StaticResource Tile}" Margin="0">
+                            <Border Grid.Column="1" CornerRadius="14" Background="#16FFFFFF" Padding="8,6">
                                 <DockPanel>
                                     <TextBlock DockPanel.Dock="Top" Style="{StaticResource Sub}" Text="To-do" Margin="2,0,0,6"/>
-                                    <TextBox x:Name="TodoInput" DockPanel.Dock="Top" Style="{StaticResource Field}" Tag="Add a task and press Enter" KeyDown="TodoInput_KeyDown" Margin="0,0,0,6"/>
+                                    <TextBox x:Name="TodoInput" DockPanel.Dock="Top" Style="{StaticResource Field}" Tag="Add a task" FontSize="11" KeyDown="TodoInput_KeyDown" Margin="0,0,0,6"/>
                                     <ListBox x:Name="TodoList" Style="{StaticResource PlainList}" ItemTemplate="{StaticResource TodoRow}"/>
                                 </DockPanel>
                             </Border>

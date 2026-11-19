@@ -90,6 +90,7 @@ public partial class IslandWindow : Window
             if (s.State == AgentState.NeedsYou) ShowPeek("\uE99A", $"{s.Agent} needs you", $"{s.Folder} · {s.Message}");
             else ShowPeek("\uE73E", $"{s.Agent} is done", s.Folder);
         });
+        PageWeb.BrowsingChanged += RefitExpanded;
         PageStream.ShotDone += path =>
         {
             if (path != null) ShowPeek("\uE722", "Screenshot saved", Settings.Current.CapturesOnShelf ? "On the shelf and in Pictures › CyaNotch" : "In Pictures › CyaNotch");
@@ -402,8 +403,10 @@ public partial class IslandWindow : Window
         if (TabControls?.IsChecked == true) return new Size(w, 214);
         if (TabWidgets?.IsChecked == true) return new Size(w, 206);
         if (TabCalls?.IsChecked == true) return new Size(w, 182);
-        if (TabWeb?.IsChecked == true) return new Size(w, 214);
-        if (TabFocus?.IsChecked == true) return new Size(w, 214);
+        if (TabClip?.IsChecked == true) return new Size(w, 208);
+        if (TabStream?.IsChecked == true) return new Size(w, 232);
+        if (TabWeb?.IsChecked == true) return PageWeb.Browsing ? new Size(440, 500) : new Size(w, 196);
+        if (TabFocus?.IsChecked == true) return new Size(w, 226);
         return new Size(w, 248);
     }
 
@@ -1493,6 +1496,35 @@ public partial class IslandWindow : Window
             await Task.Delay(120);
             Native.SendChord(Native.VK_CONTROL, Native.VK_V);
         }
+    }
+
+    private void ClipList_Wheel(object sender, MouseWheelEventArgs e)
+    {
+        if (FindChild<ScrollViewer>(ClipList) is { } sv)
+        {
+            sv.ScrollToHorizontalOffset(sv.HorizontalOffset - e.Delta);
+            e.Handled = true;
+        }
+    }
+
+    private void ClipSearchToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var show = ClipSearch.Visibility != Visibility.Visible;
+        ClipSearch.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        ClipSearch.Width = show ? 120 : 0;
+        if (show) ClipSearch.Focus();
+        else ClipSearch.Clear();
+    }
+
+    private static T? FindChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var c = VisualTreeHelper.GetChild(parent, i);
+            if (c is T t) return t;
+            if (FindChild<T>(c) is { } found) return found;
+        }
+        return null;
     }
 
     private void ClipPin_Click(object sender, RoutedEventArgs e)
