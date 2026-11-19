@@ -11,7 +11,7 @@ public enum IslandShape { Floating, Notch }
 public enum GameMode { Strip, Hide, Off }
 
 /// <summary>Bars: visualizer fills the pill. BarsWithTitle: title over dimmed bars. Off: artwork + title only.</summary>
-public enum VisualizerStyle { Bars, BarsWithTitle, Off }
+public enum VisualizerStyle { Bars, BarsWithTitle, Off, Dots }
 
 public sealed class DeckApp
 {
@@ -45,6 +45,10 @@ public sealed class Settings
     /// <summary>What the island does over fullscreen games and videos.</summary>
     public GameMode FullscreenMode { get; set; } = GameMode.Strip;
     public VisualizerStyle VisualizerStyle { get; set; } = VisualizerStyle.Bars;
+    /// <summary>Tint the visualizer and progress line with a colour from the song's artwork.</summary>
+    public bool ArtworkColors { get; set; } = true;
+    /// <summary>Show a soft blur of the artwork behind the pill and the music card.</summary>
+    public bool AmbientArtwork { get; set; } = true;
     public bool VisualizerMirrored { get; set; } = true;
     /// <summary>Hide the island until the mouse touches the top edge.</summary>
     public bool AutoHide { get; set; } = true;

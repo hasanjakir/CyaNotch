@@ -30,7 +30,19 @@ public sealed class VisualizerBars : FrameworkElement
     private bool _active;
     private TimeSpan _lastRender;
 
-    public int DesiredBands => Math.Clamp((int)(ActualWidth / Pitch), 8, 128);
+    /// <summary>
+    /// Dot-matrix look: a small grid of square dots that light up from the bottom.
+    /// The column count follows the width; <see cref="DotRows"/> sets the height in dots.
+    /// </summary>
+    public bool Dots { get; set; }
+    public int DotRows { get; set; } = 4;
+
+    public int DesiredBands => Dots
+        ? Math.Clamp((int)((ActualWidth + DotGap) / DotPitch), 2, 64)
+        : Math.Clamp((int)(ActualWidth / Pitch), 8, 128);
+
+    private double DotPitch => (ActualHeight + DotGap) / DotRows;
+    private const double DotGap = 1.6;
 
     public bool Active
     {
@@ -87,6 +99,8 @@ public sealed class VisualizerBars : FrameworkElement
         var h = ActualHeight;
         if (levels.Length == 0 || w <= 0 || h <= 0) return;
 
+        if (Dots) { RenderDots(dc, levels, h); return; }
+
         var n = levels.Length;
         var slot = w / n;
         var barW = Math.Max(1.5, slot * 0.58);
@@ -103,6 +117,29 @@ public sealed class VisualizerBars : FrameworkElement
             var x = i * slot + (slot - barW) / 2;
             var y = Mirrored ? (h - bh) / 2 : h - bh;
             dc.DrawRoundedRectangle(brush, null, new Rect(x, y, barW, bh), radius, radius);
+        }
+    }
+
+    private void RenderDots(DrawingContext dc, float[] levels, double h)
+    {
+        var pitch = DotPitch;
+        var dot = pitch - DotGap;
+        var r = dot * 0.28;
+        var brush = BarBrush;
+        var n = levels.Length;
+        // Centre the grid in whatever width is left over.
+        var x0 = (ActualWidth - (n * pitch - DotGap)) / 2;
+        for (int i = 0; i < n; i++)
+        {
+            // Bass on the left, treble on the right; at least one dot always lit so the grid never looks empty.
+            var lit = Math.Clamp((int)Math.Ceiling(levels[i] * DotRows), 1, DotRows);
+            for (int row = 0; row < DotRows; row++)
+            {
+                var on = row < lit;
+                dc.PushOpacity(on ? 1.0 : 0.16);
+                dc.DrawRoundedRectangle(brush, null, new Rect(x0 + i * pitch, h - (row + 1) * pitch + DotGap, dot, dot), r, r);
+                dc.Pop();
+            }
         }
     }
 
