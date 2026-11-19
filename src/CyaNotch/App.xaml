@@ -132,7 +132,7 @@
                 <Setter Property="Foreground" Value="{DynamicResource SubTextBrush}"/>
                 <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
                 <Setter Property="FontSize" Value="15"/>
-                <Setter Property="Width" Value="36"/>
+                <Setter Property="Width" Value="34"/>
                 <Setter Property="Height" Value="30"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Focusable" Value="False"/>

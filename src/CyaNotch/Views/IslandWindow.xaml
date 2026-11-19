@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CyaNotch.Views"
+        xmlns:tabs="clr-namespace:CyaNotch.Views.Tabs"
         Title="CyaNotch Island"
         Width="200" Height="34" Left="-10000" Top="0"
         WindowStyle="None" AllowsTransparency="False" Background="Transparent"
@@ -265,11 +266,15 @@
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                             <RadioButton x:Name="TabHome" Style="{StaticResource TabButton}" Content="&#xE8D6;" ToolTip="Music" IsChecked="True" Checked="Tab_Checked"/>
-                            <RadioButton x:Name="TabWidgets" Style="{StaticResource TabButton}" Content="&#xE80A;" ToolTip="Widgets" Checked="Tab_Checked"/>
-                            <RadioButton x:Name="TabClip" Style="{StaticResource TabButton}" Content="&#xE77F;" ToolTip="Clipboard" Checked="Tab_Checked"/>
-                            <RadioButton x:Name="TabShelf" Style="{StaticResource TabButton}" Content="&#xE7B8;" ToolTip="File shelf" Checked="Tab_Checked"/>
-                            <RadioButton x:Name="TabControls" Style="{StaticResource TabButton}" Content="&#xE9E9;" ToolTip="Quick controls" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabWeb" Style="{StaticResource TabButton}" Content="&#xE774;" ToolTip="Web drawer" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabNotes" Style="{StaticResource TabButton}" Content="&#xEA8F;" ToolTip="Notifications" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabShelf" Style="{StaticResource TabButton}" Content="&#xE7B8;" ToolTip="File shelf" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabClip" Style="{StaticResource TabButton}" Content="&#xE77F;" ToolTip="Clipboard" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabWidgets" Style="{StaticResource TabButton}" Content="&#xE80A;" ToolTip="Widgets" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabControls" Style="{StaticResource TabButton}" Content="&#xE9E9;" ToolTip="Quick controls" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabLauncher" Style="{StaticResource TabButton}" Content="&#xE71D;" ToolTip="Launcher" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabFocus" Style="{StaticResource TabButton}" Content="&#xE916;" ToolTip="Focus" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabCalls" Style="{StaticResource TabButton}" Content="&#xE717;" ToolTip="Calls" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabReminders" Style="{StaticResource TabButton}" Content="&#xE823;" ToolTip="Reminders and to-do" Checked="Tab_Checked"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -476,6 +481,12 @@
                                 </Border>
                             </UniformGrid>
                         </Grid>
+
+                        <!-- ===== NEW TABS ===== -->
+                        <tabs:WebPage x:Name="PageWeb" Visibility="Collapsed"/>
+                        <tabs:LauncherPage x:Name="PageLauncher" Visibility="Collapsed"/>
+                        <tabs:FocusPage x:Name="PageFocus" Visibility="Collapsed"/>
+                        <tabs:CallsPage x:Name="PageCalls" Visibility="Collapsed"/>
 
                         <!-- ===== CLIPBOARD ===== -->
                         <DockPanel x:Name="PageClip" Visibility="Collapsed">

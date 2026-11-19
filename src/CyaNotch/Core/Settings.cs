@@ -22,6 +22,12 @@ public enum MediaFilter { All, MusicApps, AllExcept }
 
 public enum VisualizerStyle { Bars, BarsWithTitle, Off, Dots }
 
+public sealed class WebSite
+{
+    public string Name { get; set; } = "";
+    public string Url { get; set; } = "";
+}
+
 public sealed class DeckApp
 {
     public string Name { get; set; } = "";
@@ -69,6 +75,19 @@ public sealed class Settings
     public MediaFilter MediaFilter { get; set; } = MediaFilter.All;
     /// <summary>App names skipped when <see cref="MediaFilter"/> is AllExcept (e.g. "Chrome").</summary>
     public List<string> MediaIgnoredApps { get; set; } = new();
+    /// <summary>Apps on the Launcher tab. Ctrl+Alt+1..9 open the first nine.</summary>
+    public List<DeckApp> LauncherApps { get; set; } = new();
+    public bool LauncherHotkeys { get; set; } = true;
+    /// <summary>Sites pinned in the web drawer.</summary>
+    public List<WebSite> WebSites { get; set; } = new()
+    {
+        new WebSite { Name = "YouTube", Url = "https://www.youtube.com/" },
+        new WebSite { Name = "Wikipedia", Url = "https://en.wikipedia.org/" },
+    };
+    public int FocusMinutes { get; set; } = 25;
+    public int BreakMinutes { get; set; } = 5;
+    /// <summary>Hold back notification pop-ups during a focus session.</summary>
+    public bool FocusSilence { get; set; } = true;
     public double DistanceFromTop { get; set; } = 8;
     /// <summary>1.0 = normal. Lower is faster.</summary>
     public double AnimationSpeed { get; set; } = 1.0;

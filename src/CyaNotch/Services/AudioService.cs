@@ -43,6 +43,12 @@ public sealed class AudioService : IDisposable
         set { var s = Speaker(); if (s != null) s.AudioEndpointVolume.Mute = value; }
     }
 
+    public string SpeakerName => Speaker()?.FriendlyName ?? "No speaker";
+    public string MicName => (Mic(Role.Communications) ?? Mic(Role.Console))?.FriendlyName ?? "No microphone";
+
+    /// <summary>The default microphone, for a level meter.</summary>
+    public MMDevice? DefaultMic() => Mic(Role.Communications) ?? Mic(Role.Console);
+
     public bool HasMic => Mic(Role.Communications) != null || Mic(Role.Console) != null;
 
     /// <summary>Muted if the default mic (and the default communications mic) are muted.</summary>
