@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0e161e">
+<title>CyaNotch Remote</title>
+<style>
+  :root { --bg:#0e161e; --card:#18222c; --line:#24313d; --text:#eef3f6; --sub:#8ea0ad; --accent:#40e0e8; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overscroll-behavior:none; }
+  body { display:flex; flex-direction:column; }
+  header { display:flex; align-items:center; gap:10px; padding:14px 16px 8px; }
+  header .pill { width:38px; height:14px; border-radius:7px; background:var(--accent); }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  header #now { margin-left:auto; color:var(--sub); font-size:12px; max-width:55%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  nav { display:flex; gap:6px; padding:4px 16px 10px; }
+  nav button { flex:1; padding:9px 0; border:0; border-radius:12px; background:var(--card); color:var(--sub); font:inherit; font-size:13px; }
+  nav button.on { background:var(--accent); color:#06232a; font-weight:600; }
+  main { flex:1; display:flex; flex-direction:column; padding:0 16px 16px; min-height:0; }
+  .page { display:none; flex:1; flex-direction:column; gap:10px; min-height:0; }
+  .page.on { display:flex; }
+  #pad { flex:1; border-radius:22px; background:var(--card); border:1px solid var(--line); touch-action:none; display:flex; align-items:flex-end; justify-content:center; color:var(--sub); font-size:12px; padding:12px; user-select:none; }
+  .row { display:flex; gap:10px; }
+  .row > button, .grid > button { flex:1; }
+  button.k { border:0; border-radius:16px; background:var(--card); color:var(--text); font:inherit; padding:16px 0; font-size:15px; }
+  button.k:active { background:var(--line); }
+  button.big { padding:26px 0; font-size:22px; }
+  button.accent { background:var(--accent); color:#06232a; font-weight:600; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  input { width:100%; padding:14px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); font:inherit; }
+  #wait { position:fixed; inset:0; background:var(--bg); display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:30px; gap:12px; }
+  #wait.on { display:flex; }
+  #wait p { color:var(--sub); margin:0; }
+  .hint { color:var(--sub); font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+<header><div class="pill"></div><h1>Remote</h1><div id="now"></div></header>
+<nav>
+  <button data-p="pad" class="on">Trackpad</button>
+  <button data-p="media">Media</button>
+  <button data-p="keys">Keys</button>
+  <button data-p="apps">Apps</button>
+</nav>
+<main>
+  <section class="page on" id="p-pad">
+    <div id="pad">Move with one finger · tap to click · two-finger tap for right click · two fingers to scroll</div>
+    <div class="row">
+      <button class="k" data-click="left">Left click</button>
+      <button class="k" data-click="right">Right click</button>
+    </div>
+  </section>
+
+  <section class="page" id="p-media">
+    <div class="row"><button class="k big" data-key="prev">⏮</button><button class="k big accent" data-key="playpause">⏯</button><button class="k big" data-key="next">⏭</button></div>
+    <div class="row"><button class="k big" data-key="voldown">🔉</button><button class="k big" data-key="mute">🔇</button><button class="k big" data-key="volup">🔊</button></div>
+    <div class="row"><button class="k" data-key="f">Fullscreen</button><button class="k" data-key="space">Space</button></div>
+    <p class="hint">Works with whatever is playing on your PC.</p>
+  </section>
+
+  <section class="page" id="p-keys">
+    <div class="grid">
+      <button class="k" data-key="esc">Esc</button><button class="k" data-key="up">↑</button><button class="k" data-key="tab">Tab</button>
+      <button class="k" data-key="left">←</button><button class="k" data-key="enter">Enter</button><button class="k" data-key="right">→</button>
+      <button class="k" data-key="back">⌫</button><button class="k" data-key="down">↓</button><button class="k" data-key="space">Space</button>
+    </div>
+    <div class="row"><button class="k" data-key="f5">Start slides</button><button class="k" data-key="pgup">Prev slide</button><button class="k" data-key="pgdn">Next slide</button></div>
+    <div class="row"><button class="k" data-key="alttab">Alt+Tab</button><button class="k" data-key="win">Start</button><button class="k" data-key="desktop">Desktop</button></div>
+    <div class="row"><input id="text" placeholder="Type on your PC…" autocomplete="off"><button class="k accent" id="send" style="flex:0 0 80px">Send</button></div>
+  </section>
+
+  <section class="page" id="p-apps">
+    <div class="grid" id="apps"></div>
+    <p class="hint">Change this list in CyaNotch Settings on your PC.</p>
+  </section>
+</main>
+
+<div id="wait"><div class="pill" style="width:60px;height:20px;border-radius:10px;background:var(--accent)"></div>
+  <h2 style="margin:6px 0 0">Approve this phone on your PC</h2>
+  <p>A question has popped up on your PC. Choose Yes, and this page connects by itself.</p>
+</div>
+
+<script>
+(() => {
+  const base = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
+  let device = localStorage.getItem('cyanotch-device');
+  if (!device) { device = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2,'0')).join(''); localStorage.setItem('cyanotch-device', device); }
+  const name = /iPhone/.test(navigator.userAgent) ? 'An iPhone' : /iPad/.test(navigator.userAgent) ? 'An iPad' : /Android/.test(navigator.userAgent) ? 'An Android phone' : 'A device';
+  const wait = document.getElementById('wait');
+
+  async function call(path, params) {
+    const qs = params ? '?' + new URLSearchParams(params) : '';
+    try {
+      const r = await fetch(base + path + qs, { method: 'POST', headers: { 'X-Device': device, 'X-Device-Name': name } });
+      if (r.status === 403) { wait.classList.add('on'); return null; }
+      wait.classList.remove('on');
+      return r;
+    } catch { return null; }
+  }
+
+  // approval polling
+  (async function hello() {
+    const r = await call('hello');
+    if (!r) setTimeout(hello, 2000); else { loadApps(); pollNow(); }
+  })();
+
+  // tabs
+  document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + b.dataset.p));
+  });
+
+  document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => { call('key', { k: b.dataset.key }); navigator.vibrate?.(10); });
+  document.querySelectorAll('[data-click]').forEach(b => b.onclick = () => call('click', { b: b.dataset.click }));
+  const text = document.getElementById('text');
+  document.getElementById('send').onclick = () => { if (text.value) { call('type', { text: text.value }); text.value = ''; } };
+  text.onkeydown = e => { if (e.key === 'Enter') document.getElementById('send').click(); };
+
+  async function loadApps() {
+    const r = await call('apps'); if (!r) return;
+    const list = await r.json();
+    const el = document.getElementById('apps'); el.innerHTML = '';
+    list.forEach(a => { const b = document.createElement('button'); b.className = 'k'; b.textContent = a.name; b.onclick = () => call('launch', { i: a.i }); el.appendChild(b); });
+  }
+
+  async function pollNow() {
+    const r = await call('now');
+    if (r) { const n = await r.json(); document.getElementById('now').textContent = n.HasSession && n.Title ? (n.IsPlaying ? '▶ ' : '❚❚ ') + n.Title : ''; }
+    setTimeout(pollNow, 4000);
+  }
+
+  // trackpad
+  const pad = document.getElementById('pad');
+  let last = null, moved = false, fingers = 0, start = 0, acc = { x: 0, y: 0 }, sending = false, scrollAcc = 0;
+  const speed = 1.8;
+  function flush() {
+    if (sending) return;
+    const dx = Math.round(acc.x), dy = Math.round(acc.y);
+    if (!dx && !dy) return;
+    acc.x -= dx; acc.y -= dy; sending = true;
+    call('move', { dx, dy }).finally(() => { sending = false; if (Math.abs(acc.x) >= 1 || Math.abs(acc.y) >= 1) flush(); });
+  }
+  pad.addEventListener('touchstart', e => {
+    e.preventDefault(); fingers = Math.max(fingers, e.touches.length);
+    const t = e.touches[0]; last = { x: t.clientX, y: t.clientY }; moved = false; start = Date.now();
+  }, { passive: false });
+  pad.addEventListener('touchmove', e => {
+    e.preventDefault(); const t = e.touches[0]; if (!last) return;
+    const dx = t.clientX - last.x, dy = t.clientY - last.y; last = { x: t.clientX, y: t.clientY };
+    if (Math.abs(dx) + Math.abs(dy) > 1) moved = true;
+    if (e.touches.length >= 2) {
+      scrollAcc += -dy * 4;
+      if (Math.abs(scrollAcc) >= 40) { const d = Math.round(scrollAcc / 40) * 40; scrollAcc -= d; call('scroll', { d }); }
+    } else {
+      const f = 1 + Math.min(Math.hypot(dx, dy) / 12, 2);   // gentle acceleration
+      acc.x += dx * speed * f; acc.y += dy * speed * f; flush();
+    }
+  }, { passive: false });
+  pad.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (e.touches.length === 0) {
+      if (!moved && Date.now() - start < 250) call('click', { b: fingers >= 2 ? 'right' : 'left' });
+      fingers = 0; last = null;
+    }
+  }, { passive: false });
+})();
+</script>
+</body>
+</html>
