@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:CyaNotch.Views"
         Title="CyaNotch Island"
-        Width="760" Height="560"
-        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Width="200" Height="34" Left="-10000" Top="0"
+        WindowStyle="None" AllowsTransparency="False" Background="Transparent"
         ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
         ShowActivated="False" UseLayoutRounding="True"
         FontFamily="{StaticResource UiFont}">
@@ -175,9 +175,6 @@
                 MouseEnter="Island_MouseEnter" MouseLeave="Island_MouseLeave"
                 MouseLeftButtonUp="Island_Click"
                 DragEnter="Island_DragEnter" DragOver="Island_DragOver" DragLeave="Island_DragLeave" Drop="Island_Drop">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.35" Color="Black" RenderingBias="Performance"/>
-            </Border.Effect>
 
             <Grid>
                 <!-- glossy sheen layer -->
@@ -193,7 +190,7 @@
 
                     <!-- music visualizer: spans the whole pill while something is playing -->
                     <local:VisualizerBars x:Name="Viz" Grid.ColumnSpan="3" Margin="4,7" Visibility="Collapsed"
-                                          BarBrush="{DynamicResource AccentBrush}" IsHitTestVisible="False"/>
+                                          BarBrush="{DynamicResource VizBrush}" IsHitTestVisible="False"/>
 
                     <!-- left: artwork or status icon -->
                     <Grid Grid.Column="0" VerticalAlignment="Center">
@@ -222,6 +219,7 @@
 
                 <!-- ============ GAME STRIP (fullscreen games) ============ -->
                 <StackPanel x:Name="Strip" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" TextElement.FontSize="11.5">
+                    <TextBlock x:Name="StripTime" FontWeight="SemiBold" Margin="0,0,12,0" Visibility="Collapsed"/>
                     <TextBlock x:Name="StripFps" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" Margin="0,0,10,0"/>
                     <TextBlock x:Name="StripCpu" Margin="0,0,10,0"/>
                     <TextBlock x:Name="StripGpu" Margin="0,0,10,0"/>

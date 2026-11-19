@@ -15,6 +15,7 @@
             <SolidColorBrush x:Key="HoverBrush" Color="#22FFFFFF"/>
             <SolidColorBrush x:Key="TrackBrush" Color="#33FFFFFF"/>
             <SolidColorBrush x:Key="SheenBrush" Color="Transparent"/>
+            <SolidColorBrush x:Key="VizBrush" Color="#40E0E8"/>
             <SolidColorBrush x:Key="DangerBrush" Color="#FF5F57"/>
 
             <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>

@@ -46,6 +46,14 @@ public sealed class Settings
     public GameMode FullscreenMode { get; set; } = GameMode.Strip;
     public VisualizerStyle VisualizerStyle { get; set; } = VisualizerStyle.Bars;
     public bool VisualizerMirrored { get; set; } = true;
+    /// <summary>Hide the island until the mouse touches the top edge.</summary>
+    public bool AutoHide { get; set; } = true;
+    /// <summary>With auto-hide on, keep the pill out while music is playing (for the visualizer).</summary>
+    public bool ShowWhilePlaying { get; set; } = true;
+    /// <summary>Pop up a quick time / CPU / GPU / RAM / temperature glance every few minutes.</summary>
+    public bool StatsGlance { get; set; } = true;
+    public int GlanceMinMinutes { get; set; } = 3;
+    public int GlanceMaxMinutes { get; set; } = 8;
     public bool LyricsEnabled { get; set; } = false;
     public bool LyricsInPill { get; set; } = false;
     public bool DeckEnabled { get; set; } = false;
