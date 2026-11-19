@@ -25,6 +25,10 @@ public partial class App : Application
     public static ReminderService Reminders { get; } = new();
     public static WeatherService Weather { get; } = new();
     public static VisualizerService Visualizer { get; } = new();
+    public static LyricsService Lyrics { get; } = new();
+    public static GameService Game { get; } = new();
+    public static PhoneServer Phone { get; } = new();
+    public static DeckService Deck { get; } = new(Phone);
 
     public static new App Current => (App)Application.Current;
 
@@ -52,6 +56,7 @@ public partial class App : Application
 
         _island = new IslandWindow();
         _island.Show();
+        WidgetWindow.RestoreAll();
 
         CreateTray();
         Log.Info("CyaNotch started");
@@ -118,6 +123,8 @@ public partial class App : Application
         Clipboard.Save();
         Audio.Dispose();
         Visualizer.Dispose();
+        Game.Dispose();
+        Phone.Dispose();
         Shutdown();
     }
 

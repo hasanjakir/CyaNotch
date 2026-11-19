@@ -97,7 +97,14 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <CheckBox x:Name="StartWithWindows" Content="Start CyaNotch when I sign in to Windows" Click="Changed"/>
-                    <CheckBox x:Name="HideFullscreen" Content="Hide the island over fullscreen games and videos" Click="Changed"/>
+                    <TextBlock Text="Over fullscreen games and videos" Margin="0,4,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <RadioButton x:Name="FsStrip" Content="Slim stats strip" GroupName="Fs" Checked="Changed"/>
+                        <RadioButton x:Name="FsHide" Content="Hide the island" GroupName="Fs" Checked="Changed"/>
+                        <RadioButton x:Name="FsOff" Content="Keep it as usual" GroupName="Fs" Checked="Changed"/>
+                    </StackPanel>
+                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Text="The strip shows FPS when CyaNotch runs as administrator, and GPU temperature on NVIDIA cards. Games must use borderless or windowed fullscreen."/>
                     <CheckBox x:Name="MicHotkey" Content="Ctrl+Alt+M mutes the microphone in every app" Click="Changed"/>
                     <CheckBox x:Name="ShowNotes" Content="Show Windows notifications in the island" Click="Changed"/>
                     <CheckBox x:Name="Clock24" Content="24-hour clock" Click="Changed"/>
@@ -110,6 +117,51 @@
                             <ComboBoxItem Content="500"/>
                         </ComboBox>
                     </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Lyrics -->
+            <TextBlock Style="{StaticResource H}" Text="LYRICS"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <CheckBox x:Name="LyricsOn" Content="Show lyrics that follow the song" Click="Changed"/>
+                    <CheckBox x:Name="LyricsPill" Content="Show the current line in the pill (with the title style)" Click="Changed"/>
+                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Text="Lyrics come from lrclib.net. Only the song title and artist are sent, and only while this is on."/>
+                </StackPanel>
+            </Border>
+
+            <!-- Phone remote -->
+            <TextBlock Style="{StaticResource H}" Text="PHONE REMOTE"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap"
+                               Text="Turn it on from the island's controls tab and scan the code. These apps appear on the phone's Apps tab:"/>
+                    <ItemsControl x:Name="DeckApps" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                    <Button HorizontalAlignment="Right" Content="Remove" Padding="8,2" Click="RemoveDeckApp_Click"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Style="{StaticResource SetButton}" Content="Add app…" Click="AddDeckApp_Click"/>
+                        <Button Content="Forget approved phones" Padding="12,5" Margin="8,0,0,0" Click="ResetPhones_Click"/>
+                    </StackPanel>
+                    <TextBlock x:Name="PhonesText" Foreground="#8F94A0" FontSize="12" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Desktop widgets -->
+            <TextBlock Style="{StaticResource H}" Text="DESKTOP WIDGETS"/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Foreground="#8F94A0" FontSize="12" TextWrapping="Wrap"
+                               Text="Pin a widget to your desktop. Drag it where you like; right-click it to unpin. You can also right-click a tile in the island."/>
+                    <WrapPanel x:Name="WidgetButtons" Margin="0,8,0,0"/>
                 </StackPanel>
             </Border>
 

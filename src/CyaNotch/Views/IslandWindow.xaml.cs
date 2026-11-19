@@ -17,12 +17,13 @@ using System.Windows.Threading;
 using CyaNotch.Core;
 using CyaNotch.Services;
 using Windows.Devices.Radios;
+using QRCoder;
 
 namespace CyaNotch.Views;
 
 public partial class IslandWindow : Window
 {
-    private enum Mode { Compact, Peek, Expanded }
+    private enum Mode { Compact, Peek, Expanded, Strip }
 
     private const int HotkeyMicId = 0xB001;
 
@@ -36,7 +37,7 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer _expandDelay = new() { Interval = TimeSpan.FromMilliseconds(140) };
     private readonly DispatcherTimer _collapseDelay = new() { Interval = TimeSpan.FromMilliseconds(380) };
     private readonly DispatcherTimer _peekTimer = new() { Interval = TimeSpan.FromSeconds(4) };
-    private readonly DispatcherTimer _fast = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    private readonly DispatcherTimer _fast = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly DispatcherTimer _slow = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly DispatcherTimer _weatherTimer = new() { Interval = TimeSpan.FromMinutes(20) };
 
@@ -58,19 +59,29 @@ public partial class IslandWindow : Window
     // Clipboard filter
     private string _clipFilter = "All";
 
+    // Lyrics
+    private Lyrics? _lyrics;
+    private string _lyricsKey = "";
+    private string? _currentLyric;
+
+    // Game strip
+    private SystemStats? _lastStats;
+    private double? _gpuTemp, _cpuTemp;
+
     public IslandWindow()
     {
         InitializeComponent();
 
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
-        Deactivated += (_, _) => { if (_mode == Mode.Expanded && !Island.IsMouseOver) Collapse(); };
+        Deactivated += (_, _) => { if (_mode == Mode.Expanded && !Island.IsMouseOver && QrOverlay.Visibility != Visibility.Visible) Collapse(); };
 
         _expandDelay.Tick += (_, _) => { _expandDelay.Stop(); Expand(); };
         _collapseDelay.Tick += (_, _) =>
         {
             _collapseDelay.Stop();
             if (Island.IsMouseOver) return;
+            if (QrOverlay.Visibility == Visibility.Visible) return; // phone is scanning the code
             if (IsKeyboardFocusWithin && IsActive) return; // typing in a box: wait for click-away
             Collapse();
         };
@@ -164,6 +175,12 @@ public partial class IslandWindow : Window
         App.Audio.MicMuteChanged += () => Dispatcher.BeginInvoke(UpdateMicUi);
         App.Weather.Updated += w => Dispatcher.BeginInvoke(() => ApplyWeather(w));
 
+        if (Settings.Current.DeckEnabled)
+        {
+            try { App.Deck.Start(); } catch (Exception ex) { Log.Error("Phone remote failed to start", ex); }
+        }
+        UpdateDeckUi();
+
         _fast.Start();
         _slow.Start();
         _weatherTimer.Start();
@@ -220,6 +237,8 @@ public partial class IslandWindow : Window
             RegisterMicHotkey();
             ApplyShape(animate: true);
             UpdateCompactLayout();
+            _lyricsKey = "";
+            LoadLyrics(App.Media.State);
             WorldList.ItemsSource = null;
             SlowTick();
             _ = App.Weather.RefreshAsync();
@@ -246,6 +265,7 @@ public partial class IslandWindow : Window
 
     private static Size PeekSize() => new(400, 64);
     private static Size ExpandedSize() => new(700, 430);
+    private static Size StripSize() => new(380, 24);
 
     private void ApplyShape(bool animate)
     {
@@ -255,6 +275,7 @@ public partial class IslandWindow : Window
         {
             Mode.Expanded => ExpandedSize(),
             Mode.Peek => PeekSize(),
+            Mode.Strip => StripSize(),
             _ => CompactSize(),
         };
         AnimateTo(size, animate);
@@ -320,6 +341,11 @@ public partial class IslandWindow : Window
         if (fg != _hwnd) _prevForeground = fg;
 
         _peekTimer.Stop();
+        if (_mode == Mode.Strip)
+        {
+            App.Game.StopTracking();
+            Strip.Visibility = Visibility.Collapsed;
+        }
         _mode = Mode.Expanded;
         UpdateVisibility();
         Fade(Compact, false, 90 * Speed);
@@ -333,6 +359,7 @@ public partial class IslandWindow : Window
     {
         if (_mode != Mode.Expanded) return;
         _mode = Mode.Compact;
+        QrOverlay.Visibility = Visibility.Collapsed;
         Keyboard.ClearFocus();
         Fade(Expanded, false, 90 * Speed);
         Fade(Compact, true, 200 * Speed, 160 * Speed);
@@ -392,7 +419,7 @@ public partial class IslandWindow : Window
     private void Island_MouseEnter(object sender, MouseEventArgs e)
     {
         _collapseDelay.Stop();
-        if (_mode != Mode.Expanded)
+        if (_mode != Mode.Expanded && _mode != Mode.Strip)
         {
             _expandDelay.Interval = TimeSpan.FromMilliseconds(140 * Speed);
             _expandDelay.Start();
@@ -450,6 +477,162 @@ public partial class IslandWindow : Window
     }
 
     // =====================================================================
+    // Game strip
+    // =====================================================================
+
+    private void EnterStrip()
+    {
+        _mode = Mode.Strip;
+        Native.GetWindowThreadProcessId(Native.GetForegroundWindow(), out var pid);
+        App.Game.Track((int)pid);
+        Fade(Compact, false, 80 * Speed);
+        Fade(Strip, true, 160 * Speed, 100 * Speed);
+        AnimateTo(StripSize(), bouncy: false);
+        UpdateCompactLayout();
+        UpdateStrip();
+    }
+
+    private void ExitStrip()
+    {
+        App.Game.StopTracking();
+        _mode = Mode.Compact;
+        Fade(Strip, false, 80 * Speed);
+        Fade(Compact, true, 160 * Speed, 100 * Speed);
+        AnimateTo(CompactSize(), bouncy: false);
+        UpdateCompactLayout();
+        if (_peeks.Count > 0) NextPeek();
+    }
+
+    private void UpdateStrip()
+    {
+        var fps = App.Game.SampleFps();
+        StripFps.Text = fps is { } f ? $"{f:0} FPS" : "";
+        StripFps.Visibility = fps == null ? Visibility.Collapsed : Visibility.Visible;
+        var st = _lastStats;
+        if (st == null) return;
+        StripCpu.Text = _cpuTemp is { } ct ? $"CPU {st.Cpu:0}% {ct:0}°" : $"CPU {st.Cpu:0}%";
+        StripGpu.Text = st.Gpu is { } g
+            ? (_gpuTemp is { } gt ? $"GPU {g:0}% {gt:0}°" : $"GPU {g:0}%")
+            : (_gpuTemp is { } gt2 ? $"GPU {gt2:0}°" : "");
+        StripGpu.Visibility = StripGpu.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        StripRam.Text = $"RAM {st.Ram:0}%";
+    }
+
+    // =====================================================================
+    // Lyrics
+    // =====================================================================
+
+    private async void LoadLyrics(MediaInfo m)
+    {
+        if (!Settings.Current.LyricsEnabled || !m.HasSession || string.IsNullOrEmpty(m.Title))
+        {
+            _lyrics = null;
+            _lyricsKey = "";
+            UpdateLyrics(m);
+            return;
+        }
+        var key = $"{m.Artist}|{m.Title}";
+        if (key == _lyricsKey) return;
+        _lyricsKey = key;
+        _lyrics = null;
+        UpdateLyrics(m);
+        var result = await App.Lyrics.GetAsync(m.Title, m.Artist, m.Duration);
+        if (_lyricsKey != key) return; // song changed while loading
+        _lyrics = result;
+        UpdateLyrics(App.Media.State);
+    }
+
+    private void UpdateLyrics(MediaInfo m)
+    {
+        var l = _lyrics;
+        if (l == null || !l.Synced || !Settings.Current.LyricsEnabled)
+        {
+            LyricsBox.Visibility = Visibility.Collapsed;
+            _currentLyric = null;
+            return;
+        }
+        // Small lead so the line appears as it is sung, not after.
+        var i = l.IndexAt(m.LivePosition + TimeSpan.FromMilliseconds(250));
+        string Line(int k) => k >= 0 && k < l.Lines.Count ? l.Lines[k].Text : "";
+        _currentLyric = i >= 0 ? Line(i) : null;
+        LyricPrev.Text = Line(i - 1);
+        LyricNow.Text = i >= 0 ? (Line(i).Length == 0 ? "♪" : Line(i)) : "♪";
+        LyricNext.Text = Line(i + 1);
+        LyricsBox.Visibility = Visibility.Visible;
+    }
+
+    // =====================================================================
+    // Phone remote
+    // =====================================================================
+
+    private void DeckToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Deck.Active)
+        {
+            App.Deck.Stop();
+            Settings.Current.DeckEnabled = false;
+            QrOverlay.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            var url = App.Deck.Start();
+            Settings.Current.DeckEnabled = true;
+            ShowQr(url);
+        }
+        Settings.Save();
+        UpdateDeckUi();
+    }
+
+    private void DeckShow_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Deck.Url is { } url) ShowQr(url);
+    }
+
+    private void ShowQr(string url)
+    {
+        try
+        {
+            using var gen = new QRCodeGenerator();
+            using var data = gen.CreateQrCode(url, QRCodeGenerator.ECCLevel.M);
+            var png = new PngByteQRCode(data).GetGraphic(12);
+            var bmp = new System.Windows.Media.Imaging.BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bmp.StreamSource = new MemoryStream(png);
+            bmp.EndInit();
+            bmp.Freeze();
+            QrImage.Source = bmp;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("QR code failed", ex);
+        }
+        QrUrl.Text = url;
+        QrOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void QrClose_Click(object sender, RoutedEventArgs e) => QrOverlay.Visibility = Visibility.Collapsed;
+
+    private void UpdateDeckUi()
+    {
+        var on = App.Deck.Active;
+        DeckToggle.Content = on ? "Turn off" : "Turn on";
+        DeckShow.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        DeckState.Text = on
+            ? $"On · {Settings.Current.ApprovedPhones.Count} approved phone(s)"
+            : "Use your phone as a trackpad and remote";
+    }
+
+    // =====================================================================
+    // Desktop widgets
+    // =====================================================================
+
+    private void PinWidget_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuItem)?.Tag is string kind) WidgetWindow.PinNew(kind);
+    }
+
+    // =====================================================================
     // Ticks
     // =====================================================================
 
@@ -493,8 +676,13 @@ public partial class IslandWindow : Window
         // Call timer
         if (_callStart is { } cs) CallTime.Text = Fmt(now - cs);
 
+        if (_mode == Mode.Strip) UpdateStrip();
+        if (_lyrics != null) UpdateLyrics(m);
+
         // Compact text: song > timer > clock
-        if (m.HasSession && m.IsPlaying && !string.IsNullOrEmpty(m.Title))
+        if (m.HasSession && m.IsPlaying && Settings.Current.LyricsInPill && !string.IsNullOrEmpty(_currentLyric))
+            CompactText.Text = _currentLyric;
+        else if (m.HasSession && m.IsPlaying && !string.IsNullOrEmpty(m.Title))
             CompactText.Text = m.Title;
         else if (timerText != null)
             CompactText.Text = timerText;
@@ -541,15 +729,27 @@ public partial class IslandWindow : Window
         else if (!inUse && _callStart != null) { _callStart = null; CallPill.Visibility = Visibility.Collapsed; AnimateIfCompact(); }
 
         // Fullscreen apps: get out of the way.
-        var fs = Settings.Current.HideInFullscreen && Native.IsForegroundFullscreen(_hwnd);
-        if (fs != _hiddenForFullscreen)
+        _lastStats = s;
+        var fs = Native.IsForegroundFullscreen(_hwnd);
+        var fsMode = Settings.Current.FullscreenMode;
+        var wantStrip = fs && fsMode == GameMode.Strip;
+        var wantHide = fs && fsMode == GameMode.Hide;
+        if (wantStrip && _mode == Mode.Compact) EnterStrip();
+        else if (!wantStrip && _mode == Mode.Strip) ExitStrip();
+        if (wantHide != _hiddenForFullscreen)
         {
-            _hiddenForFullscreen = fs;
+            _hiddenForFullscreen = wantHide;
             UpdateVisibility();
         }
+        if (_mode == Mode.Strip)
+        {
+            _gpuTemp = App.Game.GpuTemp();
+            _cpuTemp = App.Game.CpuTemp();
+            UpdateStrip();
+        }
 
-        // Stay above the taskbar and other topmost windows.
-        if (!fs) Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
+        // Stay above the taskbar, other topmost windows and borderless games.
+        if (!wantHide) Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
 
         if (_mode == Mode.Expanded && TabControls.IsChecked == true) RefreshControlsQuiet();
     }
@@ -597,7 +797,7 @@ public partial class IslandWindow : Window
         PageControls.Visibility = TabControls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageNotes.Visibility = TabNotes.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageReminders.Visibility = TabReminders.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        if (TabControls.IsChecked == true) RefreshControls();
+        if (TabControls.IsChecked == true) { RefreshControls(); UpdateDeckUi(); }
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
@@ -642,6 +842,8 @@ public partial class IslandWindow : Window
         CompactArt.ImageSource = m.Artwork;
         CompactIcon.Text = playing ? "\uE8D6" : "\uE823";
         UpdateCompactLayout();
+
+        LoadLyrics(m);
 
         // expanded
         MediaApp.Text = m.HasSession ? m.AppName : "Nothing playing";

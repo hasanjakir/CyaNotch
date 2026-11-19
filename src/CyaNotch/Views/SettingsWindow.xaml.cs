@@ -49,7 +49,19 @@ public partial class SettingsWindow : Window
         IslandWidth.Value = s.CollapsedWidth;
         Speed.Value = s.AnimationSpeed;
         StartWithWindows.IsChecked = s.StartWithWindows;
-        HideFullscreen.IsChecked = s.HideInFullscreen;
+        FsStrip.IsChecked = s.FullscreenMode == GameMode.Strip;
+        FsHide.IsChecked = s.FullscreenMode == GameMode.Hide;
+        FsOff.IsChecked = s.FullscreenMode == GameMode.Off;
+        LyricsOn.IsChecked = s.LyricsEnabled;
+        LyricsPill.IsChecked = s.LyricsInPill;
+        RefreshDeckApps();
+        WidgetButtons.Children.Clear();
+        foreach (var k in WidgetWindow.Kinds)
+        {
+            var b = new Button { Content = $"Pin {k.ToLowerInvariant()}", Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 6, 6) };
+            b.Click += (_, _) => WidgetWindow.PinNew(k);
+            WidgetButtons.Children.Add(b);
+        }
         MicHotkey.IsChecked = s.MicMuteHotkey;
         ShowNotes.IsChecked = s.ShowNotifications;
         Clock24.IsChecked = s.Use24Hour;
@@ -88,6 +100,46 @@ public partial class SettingsWindow : Window
         return panel;
     }
 
+    private void RefreshDeckApps()
+    {
+        DeckApps.ItemsSource = null;
+        DeckApps.ItemsSource = Settings.Current.DeckApps.ToList();
+        PhonesText.Text = $"{Settings.Current.ApprovedPhones.Count} phone(s) approved.";
+    }
+
+    private void AddDeckApp_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose an app for the phone remote",
+            Filter = "Apps and shortcuts|*.exe;*.lnk;*.url;*.bat|All files|*.*",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu),
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        Settings.Current.DeckApps.Add(new DeckApp
+        {
+            Name = System.IO.Path.GetFileNameWithoutExtension(dlg.FileName),
+            Path = dlg.FileName,
+        });
+        Settings.Save();
+        RefreshDeckApps();
+    }
+
+    private void RemoveDeckApp_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not DeckApp a) return;
+        Settings.Current.DeckApps.Remove(a);
+        Settings.Save();
+        RefreshDeckApps();
+    }
+
+    private void ResetPhones_Click(object sender, RoutedEventArgs e)
+    {
+        App.Deck.ResetKey();
+        RefreshDeckApps();
+        PhonesText.Text = "All phones forgotten. Scan the new code to connect again.";
+    }
+
     private void RefreshClocks()
     {
         Clocks.ItemsSource = null;
@@ -124,7 +176,9 @@ public partial class SettingsWindow : Window
         s.DistanceFromTop = Distance.Value;
         s.CollapsedWidth = IslandWidth.Value;
         s.AnimationSpeed = Speed.Value;
-        s.HideInFullscreen = HideFullscreen.IsChecked == true;
+        s.FullscreenMode = FsHide.IsChecked == true ? GameMode.Hide : FsOff.IsChecked == true ? GameMode.Off : GameMode.Strip;
+        s.LyricsEnabled = LyricsOn.IsChecked == true;
+        s.LyricsInPill = LyricsPill.IsChecked == true;
         s.MicMuteHotkey = MicHotkey.IsChecked == true;
         s.ShowNotifications = ShowNotes.IsChecked == true;
         s.Use24Hour = Clock24.IsChecked == true;

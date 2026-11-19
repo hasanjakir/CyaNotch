@@ -42,7 +42,6 @@ public sealed class Settings
     public double AnimationSpeed { get; set; } = 1.0;
     public double CollapsedWidth { get; set; } = 200;
     public double CollapsedHeight { get; set; } = 34;
-    public bool HideInFullscreen { get; set; } = true;
     /// <summary>What the island does over fullscreen games and videos.</summary>
     public GameMode FullscreenMode { get; set; } = GameMode.Strip;
     public VisualizerStyle VisualizerStyle { get; set; } = VisualizerStyle.Bars;
