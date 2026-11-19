@@ -54,6 +54,13 @@ public partial class SettingsWindow : Window
         ArtColorsBox.IsChecked = s.ArtworkColors;
         AmbientBox.IsChecked = s.AmbientArtwork;
         VizMirror.IsChecked = s.VisualizerMirrored;
+        ProgWave.IsChecked = s.ProgressStyle == ProgressStyle.Wave;
+        ProgLine.IsChecked = s.ProgressStyle == ProgressStyle.Line;
+        ProgBar.IsChecked = s.ProgressStyle == ProgressStyle.Bar;
+        ProgDots.IsChecked = s.ProgressStyle == ProgressStyle.Dots;
+        ProgGlow.IsChecked = s.ProgressStyle == ProgressStyle.Glow;
+        OpenMusic.IsChecked = s.OpenOn == "Music";
+        OpenLast.IsChecked = s.OpenOn != "Music";
         Distance.Value = s.DistanceFromTop;
         IslandWidth.Value = s.CollapsedWidth;
         Speed.Value = s.AnimationSpeed;
@@ -211,6 +218,11 @@ public partial class SettingsWindow : Window
         s.ArtworkColors = ArtColorsBox.IsChecked == true;
         s.AmbientArtwork = AmbientBox.IsChecked == true;
         s.VisualizerMirrored = VizMirror.IsChecked == true;
+        s.ProgressStyle = ProgLine.IsChecked == true ? ProgressStyle.Line
+                        : ProgBar.IsChecked == true ? ProgressStyle.Bar
+                        : ProgDots.IsChecked == true ? ProgressStyle.Dots
+                        : ProgGlow.IsChecked == true ? ProgressStyle.Glow : ProgressStyle.Wave;
+        s.OpenOn = OpenMusic.IsChecked == true ? "Music" : "Last";
         s.GlassTint = GlassTint.Value / 100;
         s.HideFromCapture = HideCapture.IsChecked == true;
         s.DistanceFromTop = Distance.Value;

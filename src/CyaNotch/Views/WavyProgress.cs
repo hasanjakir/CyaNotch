@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using CyaNotch.Core;
 
 namespace CyaNotch.Views;
 
@@ -46,6 +47,23 @@ public sealed class WavyProgress : FrameworkElement
 
     public bool IsDragging { get; private set; }
 
+    /// <summary>Wave, Line, Bar, Dots or Glow.</summary>
+    public ProgressStyle Look
+    {
+        get => _look;
+        set { _look = value; UpdateAnimation(); InvalidateVisual(); }
+    }
+
+    /// <summary>Soft themes swap the thumb for a heart, sparkle or petal.</summary>
+    public ThemeTouch Touch
+    {
+        get => _touch;
+        set { _touch = value; InvalidateVisual(); }
+    }
+
+    private ProgressStyle _look = ProgressStyle.Wave;
+    private ThemeTouch _touch;
+
     private double _value;
     private bool _playing;
     private double _phase;
@@ -62,7 +80,7 @@ public sealed class WavyProgress : FrameworkElement
 
     private void UpdateAnimation()
     {
-        var want = IsVisible && (_playing || _amp > 0.001);
+        var want = IsVisible && _look == ProgressStyle.Wave && (_playing || _amp > 0.001);
         if (want == _hooked) return;
         _hooked = want;
         _last = TimeSpan.Zero;
@@ -94,27 +112,89 @@ public sealed class WavyProgress : FrameworkElement
         // Hit area for the whole strip.
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, w, h));
 
-        var track = new Pen(Track, 3) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
-        if (x < w - 1) dc.DrawLine(track, new Point(Math.Max(x + 5, 1.5), mid), new Point(w - 1.5, mid));
-
-        if (x > 1)
+        switch (_look)
         {
-            const double wavelength = 22;
-            var amp = 3.2 * _amp;
-            var geo = new StreamGeometry();
-            using (var g = geo.Open())
-            {
-                g.BeginFigure(new Point(1.5, mid + Math.Sin(_phase) * amp), false, false);
-                for (double px = 3; px <= x; px += 2)
-                    g.LineTo(new Point(px, mid + Math.Sin(px / wavelength * Math.PI * 2 - _phase) * amp), true, true);
-            }
-            geo.Freeze();
-            var pen = new Pen(Brush, 3) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
-            dc.DrawGeometry(null, pen, geo);
+            case ProgressStyle.Dots:
+                RenderDots(dc, w, mid, x);
+                break;
+            case ProgressStyle.Bar:
+                dc.DrawRoundedRectangle(Track, null, new Rect(0, mid - 3, w, 6), 3, 3);
+                if (x > 0) dc.DrawRoundedRectangle(Brush, null, new Rect(0, mid - 3, Math.Max(6, x), 6), 3, 3);
+                break;
+            case ProgressStyle.Glow:
+                Line(dc, Track, 3, 1.5, Math.Max(x, 1.5), w - 1.5, mid);
+                if (x > 1)
+                {
+                    var glow = Brush.CloneCurrentValue();
+                    glow.Opacity = 0.25;
+                    Line(dc, glow, 9, 4.5, x, -1, mid);
+                    Line(dc, Brush, 3, 1.5, x, -1, mid);
+                }
+                break;
+            case ProgressStyle.Line:
+                Line(dc, Track, 3, 1.5, Math.Max(x, 1.5), w - 1.5, mid);
+                if (x > 1) Line(dc, Brush, 3, 1.5, x, -1, mid);
+                break;
+            default:
+                RenderWave(dc, w, mid, x);
+                break;
         }
 
-        // Upright thumb at the play position.
-        dc.DrawRoundedRectangle(Brush, null, new Rect(Math.Clamp(x, 0, w) - 2, mid - 7, 4, 14), 2, 2);
+        if (_look != ProgressStyle.Bar && _look != ProgressStyle.Dots) DrawThumb(dc, Math.Clamp(x, 0, w), mid);
+    }
+
+    private static void Line(DrawingContext dc, Brush b, double thickness, double from, double to, double unused, double y)
+    {
+        if (to <= from) return;
+        var pen = new Pen(b, thickness) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        dc.DrawLine(pen, new Point(from, y), new Point(to, y));
+    }
+
+    private void RenderWave(DrawingContext dc, double w, double mid, double x)
+    {
+        var track = new Pen(Track, 3) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        if (x < w - 1) dc.DrawLine(track, new Point(Math.Max(x + 5, 1.5), mid), new Point(w - 1.5, mid));
+        if (x <= 1) return;
+
+        const double wavelength = 22;
+        var amp = 3.2 * _amp;
+        var geo = new StreamGeometry();
+        using (var g = geo.Open())
+        {
+            g.BeginFigure(new Point(1.5, mid + Math.Sin(_phase) * amp), false, false);
+            for (double px = 3; px <= x; px += 2)
+                g.LineTo(new Point(px, mid + Math.Sin(px / wavelength * Math.PI * 2 - _phase) * amp), true, true);
+        }
+        geo.Freeze();
+        var pen = new Pen(Brush, 3) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+        dc.DrawGeometry(null, pen, geo);
+    }
+
+    private void RenderDots(DrawingContext dc, double w, double mid, double x)
+    {
+        const double pitch = 8, r = 2.2;
+        var n = Math.Max(2, (int)(w / pitch));
+        var step = (w - 2 * r) / (n - 1);
+        for (int i = 0; i < n; i++)
+        {
+            var cx = r + i * step;
+            var on = cx <= x;
+            dc.DrawEllipse(on ? Brush : Track, null, new Point(cx, mid), on ? r + 0.4 : r, on ? r + 0.4 : r);
+        }
+    }
+
+    private void DrawThumb(DrawingContext dc, double x, double mid)
+    {
+        var glyph = _touch switch { ThemeTouch.Hearts => "\u2665", ThemeTouch.Sparkles => "\u2726", ThemeTouch.Petals => "\u2740", _ => null };
+        if (glyph == null)
+        {
+            // Upright thumb at the play position.
+            dc.DrawRoundedRectangle(Brush, null, new Rect(x - 2, mid - 7, 4, 14), 2, 2);
+            return;
+        }
+        var ft = new FormattedText(glyph, System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+            new Typeface("Segoe UI Symbol"), 15, Brush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        dc.DrawText(ft, new Point(x - ft.Width / 2, mid - ft.Height / 2));
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)

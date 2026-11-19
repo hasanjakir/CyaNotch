@@ -262,7 +262,8 @@
                     <!-- top bar -->
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                            <RadioButton x:Name="TabHome" Style="{StaticResource TabButton}" Content="&#xE80F;" ToolTip="Home" IsChecked="True" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabHome" Style="{StaticResource TabButton}" Content="&#xE8D6;" ToolTip="Music" IsChecked="True" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabWidgets" Style="{StaticResource TabButton}" Content="&#xE80A;" ToolTip="Widgets" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabClip" Style="{StaticResource TabButton}" Content="&#xE77F;" ToolTip="Clipboard" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabShelf" Style="{StaticResource TabButton}" Content="&#xE7B8;" ToolTip="File shelf" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabControls" Style="{StaticResource TabButton}" Content="&#xE9E9;" ToolTip="Quick controls" Checked="Tab_Checked"/>
@@ -299,84 +300,84 @@
                         </Border>
                     </Grid>
                     <Grid x:Name="Pages">
-                        <!-- ===== HOME ===== -->
-                        <Grid x:Name="PageHome">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="300"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                        <!-- ===== MUSIC ===== -->
+                        <Grid x:Name="PageHome" Margin="4,0,4,2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                            <!-- media -->
-                            <Border Style="{StaticResource Tile}" Padding="14">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Border Width="84" Height="84" CornerRadius="14" Background="{DynamicResource TrackBrush}">
-                                            <Grid>
-                                                <TextBlock x:Name="ArtPlaceholder" Style="{StaticResource Icon}" FontSize="28" Text="&#xE8D6;" Foreground="{DynamicResource SubTextBrush}"/>
-                                                <Border CornerRadius="14">
-                                                    <Border.Background>
-                                                        <ImageBrush x:Name="MediaArt" Stretch="UniformToFill"/>
-                                                    </Border.Background>
-                                                </Border>
-                                            </Grid>
-                                        </Border>
-                                        <StackPanel Grid.Column="1" Margin="12,2,0,0" VerticalAlignment="Center">
-                                            <TextBlock x:Name="MediaApp" Style="{StaticResource Sub}" Text="Nothing playing"/>
-                                            <TextBlock x:Name="MediaTitle" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
-                                            <TextBlock x:Name="MediaArtist" Foreground="{DynamicResource SubTextBrush}" TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-                                    </Grid>
-
-                                    <local:VisualizerBars x:Name="CardViz" Grid.Row="1" Margin="0,12,0,0" MinHeight="36" Pitch="7"
-                                                          BarBrush="{DynamicResource MediaVizBrush}" Visibility="Collapsed"/>
-
-                                    <StackPanel x:Name="LyricsBox" Grid.Row="1" VerticalAlignment="Center" Margin="0,10,0,0" Visibility="Collapsed">
-                                        <TextBlock x:Name="LyricPrev" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis" Opacity="0.7"/>
-                                        <TextBlock x:Name="LyricNow" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}" TextWrapping="Wrap" MaxHeight="40" TextTrimming="CharacterEllipsis" Margin="0,2"/>
-                                        <TextBlock x:Name="LyricNext" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-
-                                    <Grid Grid.Row="2" Margin="0,12,0,0">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-                                        <local:WavyProgress x:Name="MediaProgress" Brush="{DynamicResource MediaAccentBrush}" Track="{DynamicResource TrackBrush}"/>
-                                        <Grid Grid.Row="1" Margin="0,4,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="44"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="44"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock x:Name="MediaPos" Style="{StaticResource Sub}" FontFamily="Consolas" Text="0:00" VerticalAlignment="Center"/>
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource Icon}" FontSize="12" Text="&#xE767;" Foreground="{DynamicResource SubTextBrush}" Margin="0,0,8,0"/>
-                                                <Slider x:Name="CardVolume" Style="{StaticResource ThinSlider}" Width="96" Minimum="0" Maximum="100" VerticalAlignment="Center" ValueChanged="CardVolume_Changed"/>
-                                            </StackPanel>
-                                            <TextBlock x:Name="MediaDur" Grid.Column="2" Style="{StaticResource Sub}" FontFamily="Consolas" Text="0:00" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            <!-- artwork, song, controls -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="104" Height="104">
+                                    <Border CornerRadius="16" Background="{DynamicResource TrackBrush}" Margin="0,0,8,8">
+                                        <Grid>
+                                            <TextBlock x:Name="ArtPlaceholder" Style="{StaticResource Icon}" FontSize="30" Text="&#xE8D6;" Foreground="{DynamicResource SubTextBrush}"/>
+                                            <Border CornerRadius="16">
+                                                <Border.Background>
+                                                    <ImageBrush x:Name="MediaArt" Stretch="UniformToFill"/>
+                                                </Border.Background>
+                                            </Border>
                                         </Grid>
-                                    </Grid>
-
-                                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
-                                        <Button Style="{StaticResource IconButton}" Width="40" Height="40" FontSize="16" Content="&#xE892;" Click="Prev_Click"/>
-                                        <Button x:Name="PlayPause" Style="{StaticResource IconButton}" Width="48" Height="48" FontSize="22" Content="&#xE768;" Margin="10,0" Click="PlayPause_Click"/>
-                                        <Button Style="{StaticResource IconButton}" Width="40" Height="40" FontSize="16" Content="&#xE893;" Click="Next_Click"/>
-                                    </StackPanel>
+                                    </Border>
+                                    <!-- app badge in the artwork's corner -->
+                                    <Border x:Name="AppBadge" Width="34" Height="34" CornerRadius="10" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                            Background="{DynamicResource MediaAccentBrush}" BorderBrush="#66000000" BorderThickness="2" ToolTip="{Binding Text, ElementName=MediaApp}">
+                                        <Grid>
+                                            <Image x:Name="AppBadgeIcon" Width="20" Height="20" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <TextBlock x:Name="AppBadgeGlyph" Style="{StaticResource Icon}" FontSize="14" Text="&#xE8D6;" Foreground="#E6000000"/>
+                                        </Grid>
+                                    </Border>
                                 </Grid>
-                            </Border>
+                                <StackPanel Grid.Column="1" Margin="14,0,8,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="MediaTitle" FontSize="19" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="MediaArtist" FontSize="14" Foreground="{DynamicResource SubTextBrush}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                                    <TextBlock x:Name="MediaApp" Style="{StaticResource Sub}" Text="Nothing playing" Margin="0,4,0,0" Opacity="0.8"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource IconButton}" Width="44" Height="44" FontSize="18" Content="&#xE892;" Click="Prev_Click"/>
+                                    <Button x:Name="PlayPause" Style="{StaticResource IconButton}" Width="52" Height="52" FontSize="26" Content="&#xE768;" Margin="4,0" Click="PlayPause_Click"/>
+                                    <Button Style="{StaticResource IconButton}" Width="44" Height="44" FontSize="18" Content="&#xE893;" Click="Next_Click"/>
+                                    <ToggleButton x:Name="LyricsToggle" Style="{StaticResource LyricsToggle}" Margin="6,0,0,0" ToolTip="Lyrics" Click="LyricsToggle_Click"/>
+                                </StackPanel>
+                            </Grid>
 
+                            <!-- visualizer, or lyrics when they're on -->
+                            <local:VisualizerBars x:Name="CardViz" Grid.Row="1" Margin="2,10,2,0" MinHeight="22" Pitch="7"
+                                                  BarBrush="{DynamicResource MediaVizBrush}" Visibility="Collapsed"/>
+                            <StackPanel x:Name="LyricsBox" Grid.Row="1" VerticalAlignment="Center" Margin="2,8,2,0" Visibility="Collapsed">
+                                <TextBlock x:Name="LyricPrev" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis" Opacity="0.7"/>
+                                <TextBlock x:Name="LyricNow" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource MediaAccentBrush}" TextWrapping="Wrap" MaxHeight="42" TextTrimming="CharacterEllipsis" Margin="0,2"/>
+                                <TextBlock x:Name="LyricNext" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+
+                            <local:WavyProgress x:Name="MediaProgress" Grid.Row="2" Margin="0,10,0,0" Brush="{DynamicResource MediaAccentBrush}" Track="{DynamicResource TrackBrush}"/>
+                            <Grid Grid.Row="3" Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="56"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="56"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="MediaPos" Style="{StaticResource Sub}" FontFamily="Consolas" FontSize="12.5" Text="0:00" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource Icon}" FontSize="13" Text="&#xE767;" Foreground="{DynamicResource SubTextBrush}" Margin="0,0,8,0"/>
+                                    <Slider x:Name="CardVolume" Style="{StaticResource ThinSlider}" Width="120" Minimum="0" Maximum="100" VerticalAlignment="Center" ValueChanged="CardVolume_Changed"/>
+                                </StackPanel>
+                                <TextBlock x:Name="MediaDur" Grid.Column="2" Style="{StaticResource Sub}" FontFamily="Consolas" FontSize="12.5" Text="0:00" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ===== WIDGETS ===== -->
+                        <Grid x:Name="PageWidgets" Visibility="Collapsed">
                             <!-- widgets -->
-                            <UniformGrid Grid.Column="1" Columns="2" Rows="2">
+                            <UniformGrid Columns="2" Rows="2">
                                 <!-- clock + weather -->
                                 <Border Style="{StaticResource Tile}">
                                     <Border.ContextMenu>

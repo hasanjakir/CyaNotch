@@ -83,6 +83,21 @@
                         <RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/>
                     </WrapPanel>
                     <CheckBox x:Name="VizMirror" Content="Grow bars from the middle line" Click="Changed"/>
+
+                    <TextBlock Text="Music progress bar" Margin="0,12,0,6"/>
+                    <WrapPanel>
+                        <RadioButton x:Name="ProgWave" Content="Wave" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgLine" Content="Line" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgBar" Content="Bar" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgDots" Content="Dots" GroupName="Prog" Checked="Changed"/>
+                        <RadioButton x:Name="ProgGlow" Content="Glow" GroupName="Prog" Checked="Changed"/>
+                    </WrapPanel>
+
+                    <TextBlock Text="When the island opens, show" Margin="0,12,0,6"/>
+                    <WrapPanel>
+                        <RadioButton x:Name="OpenLast" Content="The last tab used" GroupName="OpenOn" Checked="Changed"/>
+                        <RadioButton x:Name="OpenMusic" Content="Music" GroupName="OpenOn" Checked="Changed"/>
+                    </WrapPanel>
                     <CheckBox x:Name="ArtColorsBox" Content="Colour the visualizer and progress from the song's artwork" Click="Changed"/>
                     <CheckBox x:Name="AmbientBox" Content="Soft artwork glow behind the island (dark themes)" Click="Changed"/>
 

@@ -11,6 +11,9 @@ public enum IslandShape { Floating, Notch }
 public enum GameMode { Strip, Hide, Off }
 
 /// <summary>Bars: visualizer fills the pill. BarsWithTitle: title over dimmed bars. Off: artwork + title only.</summary>
+/// <summary>Look of the music progress line.</summary>
+public enum ProgressStyle { Wave, Line, Bar, Dots, Glow }
+
 public enum VisualizerStyle { Bars, BarsWithTitle, Off, Dots }
 
 public sealed class DeckApp
@@ -43,6 +46,10 @@ public sealed class Settings
     public double GlassTint { get; set; } = 0.44;
     /// <summary>Keep the island out of screenshots, screen recordings and screen sharing.</summary>
     public bool HideFromCapture { get; set; }
+    /// <summary>Tab the island reopens on: "Last" (the one used last) or "Music".</summary>
+    public string OpenOn { get; set; } = "Last";
+    public string LastTab { get; set; } = "TabHome";
+    public ProgressStyle ProgressStyle { get; set; } = ProgressStyle.Wave;
     public double DistanceFromTop { get; set; } = 8;
     /// <summary>1.0 = normal. Lower is faster.</summary>
     public double AnimationSpeed { get; set; } = 1.0;
@@ -111,6 +118,9 @@ public sealed class Settings
         Storage.Save("settings.json", Current);
         Changed?.Invoke();
     }
+
+    /// <summary>Saves without telling the app anything changed (for small bookkeeping like the last tab).</summary>
+    public static void SaveQuietly() => Storage.Save("settings.json", Current);
 }
 
 /// <summary>Tiny JSON file store under %AppData%\CyaNotch.</summary>
