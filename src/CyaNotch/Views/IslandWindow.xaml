@@ -173,7 +173,7 @@
                 BorderBrush="{DynamicResource SurfaceEdgeBrush}" BorderThickness="1"
                 AllowDrop="True" ClipToBounds="True"
                 MouseEnter="Island_MouseEnter" MouseLeave="Island_MouseLeave"
-                MouseLeftButtonUp="Island_Click"
+                MouseLeftButtonUp="Island_Click" MouseWheel="Island_MouseWheel"
                 DragEnter="Island_DragEnter" DragOver="Island_DragOver" DragLeave="Island_DragLeave" Drop="Island_Drop">
 
             <Grid>
@@ -255,6 +255,8 @@
                         <TextBlock x:Name="PeekTitle" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                         <TextBlock x:Name="PeekBody" Style="{StaticResource Sub}" FontSize="12" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
+                    <TextBlock x:Name="PeekCount" Grid.Column="1" Style="{StaticResource Sub}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Top"
+                               Visibility="Collapsed" ToolTip="Scroll to flip through"/>
                 </Grid>
 
                 <!-- ============ EXPANDED ============ -->

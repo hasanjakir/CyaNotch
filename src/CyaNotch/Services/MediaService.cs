@@ -91,15 +91,44 @@ public sealed class MediaService
         _ = RefreshAsync();
     }
 
+    private static readonly string[] MusicApps =
+    {
+        "spotify", "applemusic", "itunes", "foobar", "vlc", "potplayer", "aimp", "musicbee", "winamp", "tidal",
+        "deezer", "amazonmusic", "zunemusic", "mediaplayer", "youtubemusic", "cider", "qobuz", "soundcloud", "mpv",
+    };
+
+    /// <summary>Whether Settings lets this app show in the music card.</summary>
+    private static bool Allowed(GlobalSystemMediaTransportControlsSession s)
+    {
+        var id = (s.SourceAppUserModelId ?? "").ToLowerInvariant().Replace(" ", "");
+        var name = FriendlyApp(s.SourceAppUserModelId ?? "");
+        return Settings.Current.MediaFilter switch
+        {
+            MediaFilter.MusicApps => MusicApps.Any(id.Contains),
+            MediaFilter.AllExcept => !Settings.Current.MediaIgnoredApps.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase)),
+            _ => true,
+        };
+    }
+
+    /// <summary>Names of apps that currently report media, for the Settings list.</summary>
+    public string[] KnownApps()
+    {
+        try { return _manager?.GetSessions().Select(x => FriendlyApp(x.SourceAppUserModelId ?? "")).Distinct().ToArray() ?? Array.Empty<string>(); }
+        catch { return Array.Empty<string>(); }
+    }
+
+    public void Reselect() => Attach();
+
     /// <summary>Prefer whatever is actually playing; fall back to Windows' current session.</summary>
     private GlobalSystemMediaTransportControlsSession? PickSession()
     {
         try
         {
-            var sessions = _manager!.GetSessions();
+            var sessions = _manager!.GetSessions().Where(Allowed).ToList();
             var playing = sessions.FirstOrDefault(s =>
                 s.GetPlaybackInfo()?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing);
-            return playing ?? _manager.GetCurrentSession() ?? sessions.FirstOrDefault();
+            var current = _manager.GetCurrentSession();
+            return playing ?? (current != null && Allowed(current) ? current : null) ?? sessions.FirstOrDefault();
         }
         catch
         {

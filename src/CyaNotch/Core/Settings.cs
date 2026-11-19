@@ -14,6 +14,12 @@ public enum GameMode { Strip, Hide, Off }
 /// <summary>Look of the music progress line.</summary>
 public enum ProgressStyle { Wave, Line, Bar, Dots, Glow }
 
+/// <summary>What the resting pill shows when no music is playing.</summary>
+public enum RestingInfo { Time, Date, Weather, Battery, Cpu, Temperature }
+public enum IslandSide { Centre, Left, Right }
+/// <summary>Which apps can take over the music card.</summary>
+public enum MediaFilter { All, MusicApps, AllExcept }
+
 public enum VisualizerStyle { Bars, BarsWithTitle, Off, Dots }
 
 public sealed class DeckApp
@@ -50,6 +56,19 @@ public sealed class Settings
     public string OpenOn { get; set; } = "Last";
     public string LastTab { get; set; } = "TabHome";
     public ProgressStyle ProgressStyle { get; set; } = ProgressStyle.Wave;
+    public RestingInfo RestingInfo { get; set; } = RestingInfo.Time;
+    public IslandSide Side { get; set; } = IslandSide.Centre;
+    /// <summary>Index into Windows' screen list; -1 = main screen.</summary>
+    public int Monitor { get; set; } = -1;
+    /// <summary>Delay before the island opens under the pointer, in milliseconds.</summary>
+    public int OpenDelayMs { get; set; } = 140;
+    /// <summary>0..1: square to fully round corners (island, tiles and buttons follow).</summary>
+    public double Roundness { get; set; } = 1.0;
+    /// <summary>How long a notification stays on the closed island, in seconds.</summary>
+    public int PeekSeconds { get; set; } = 4;
+    public MediaFilter MediaFilter { get; set; } = MediaFilter.All;
+    /// <summary>App names skipped when <see cref="MediaFilter"/> is AllExcept (e.g. "Chrome").</summary>
+    public List<string> MediaIgnoredApps { get; set; } = new();
     public double DistanceFromTop { get; set; } = 8;
     /// <summary>1.0 = normal. Lower is faster.</summary>
     public double AnimationSpeed { get; set; } = 1.0;

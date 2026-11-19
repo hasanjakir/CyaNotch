@@ -43,6 +43,25 @@ public partial class SettingsWindow : Window
         AccentPanel.Children.Add(AccentChoice("Theme", null, s.Accent));
         foreach (var a in Themes.Accents) AccentPanel.Children.Add(AccentChoice(a.Name, a.Color, s.Accent));
         GlassTint.Value = Math.Round(s.GlassTint * 100);
+        Round.Value = Math.Round(s.Roundness * 100);
+        Resting.SelectedIndex = (int)s.RestingInfo;
+        SideCentre.IsChecked = s.Side == IslandSide.Centre;
+        SideLeft.IsChecked = s.Side == IslandSide.Left;
+        SideRight.IsChecked = s.Side == IslandSide.Right;
+        MonitorBox.Items.Clear();
+        MonitorBox.Items.Add("Main screen");
+        var screens = System.Windows.Forms.Screen.AllScreens;
+        for (int i = 0; i < screens.Length; i++)
+            MonitorBox.Items.Add($"Screen {i + 1} ({screens[i].Bounds.Width}×{screens[i].Bounds.Height}){(screens[i].Primary ? ", main" : "")}");
+        MonitorBox.SelectedIndex = s.Monitor >= 0 && s.Monitor < screens.Length ? s.Monitor + 1 : 0;
+        Delay.Value = s.OpenDelayMs;
+        PeekSecs.Value = s.PeekSeconds;
+        MediaAll.IsChecked = s.MediaFilter == MediaFilter.All;
+        MediaMusic.IsChecked = s.MediaFilter == MediaFilter.MusicApps;
+        MediaExcept.IsChecked = s.MediaFilter == MediaFilter.AllExcept;
+        MediaIgnore.Text = string.Join(", ", s.MediaIgnoredApps);
+        var seen = App.Media.KnownApps();
+        MediaSeen.Text = seen.Length == 0 ? "" : "Apps playing media right now: " + string.Join(", ", seen);
         HideCapture.IsChecked = s.HideFromCapture;
 
         ShapeFloating.IsChecked = s.Shape == IslandShape.Floating;
@@ -189,7 +208,11 @@ public partial class SettingsWindow : Window
 
     private void UpdateSliderLabels()
     {
-        if (DistanceText == null || WidthText == null || SpeedText == null || GlassTintText == null) return;
+        if (DistanceText == null || WidthText == null || SpeedText == null || GlassTintText == null
+            || RoundText == null || DelayText == null || PeekText == null) return;
+        RoundText.Text = Round.Value switch { 0 => "Square", 100 => "Round", _ => $"{Round.Value:0}%" };
+        DelayText.Text = Delay.Value == 0 ? "Instant" : $"{Delay.Value:0} ms";
+        PeekText.Text = $"{PeekSecs.Value:0} s";
         GlassTintText.Text = $"{GlassTint.Value:0}%";
         DistanceText.Text = $"{Distance.Value:0} px";
         WidthText.Text = $"{IslandWidth.Value:0} px";
@@ -224,6 +247,14 @@ public partial class SettingsWindow : Window
                         : ProgGlow.IsChecked == true ? ProgressStyle.Glow : ProgressStyle.Wave;
         s.OpenOn = OpenMusic.IsChecked == true ? "Music" : "Last";
         s.GlassTint = GlassTint.Value / 100;
+        s.Roundness = Round.Value / 100;
+        if (Resting.SelectedIndex >= 0) s.RestingInfo = (RestingInfo)Resting.SelectedIndex;
+        s.Side = SideLeft.IsChecked == true ? IslandSide.Left : SideRight.IsChecked == true ? IslandSide.Right : IslandSide.Centre;
+        s.Monitor = MonitorBox.SelectedIndex - 1;
+        s.OpenDelayMs = (int)Delay.Value;
+        s.PeekSeconds = (int)PeekSecs.Value;
+        s.MediaFilter = MediaMusic.IsChecked == true ? MediaFilter.MusicApps : MediaExcept.IsChecked == true ? MediaFilter.AllExcept : MediaFilter.All;
+        s.MediaIgnoredApps = MediaIgnore.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         s.HideFromCapture = HideCapture.IsChecked == true;
         s.DistanceFromTop = Distance.Value;
         s.CollapsedWidth = IslandWidth.Value;
@@ -246,6 +277,7 @@ public partial class SettingsWindow : Window
             s.StartWithWindows = startup;
             App.ApplyStartup(startup);
         }
+        App.Media.Reselect();
         Settings.Save();
     }
 

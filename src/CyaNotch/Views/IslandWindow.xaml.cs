@@ -259,13 +259,14 @@ public partial class IslandWindow : Window
         double hDip = double.IsNaN(Island.Height) ? 0 : Island.Height;
         if (Island.Visibility != Visibility.Visible) hDip = 0;
 
-        var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
-        var work = System.Windows.Forms.Screen.PrimaryScreen!.WorkingArea;
+        var scr = TargetScreen();
+        var screen = scr.Bounds;
+        var work = scr.WorkingArea;
         int w = (int)Math.Ceiling(wDip * scale);
         int h = (int)Math.Ceiling(hDip * scale);
         int top = work.Top > screen.Top ? work.Top : screen.Top; // below a top-docked taskbar
         if (!IsNotch) top += (int)Math.Round(Settings.Current.DistanceFromTop * scale);
-        int x = screen.Left + (screen.Width - w) / 2;
+        int x = (int)Math.Round(IslandCentreX(screen, scale) - w / 2.0);
         int r = (int)Math.Round(Island.CornerRadius.BottomLeft * scale);
         var square = IsNotch;
 
@@ -274,6 +275,30 @@ public partial class IslandWindow : Window
 
         Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, x, top, Math.Max(1, w), Math.Max(1, h), Native.SWP_NOACTIVATE);
         Native.SetRoundedRegion(_hwnd, h < 2 ? 0 : w, h < 2 ? 0 : h, r, square);
+    }
+
+    /// <summary>The screen chosen in Settings, or the main one.</summary>
+    private static System.Windows.Forms.Screen TargetScreen()
+    {
+        var all = System.Windows.Forms.Screen.AllScreens;
+        var i = Settings.Current.Monitor;
+        return i >= 0 && i < all.Length ? all[i] : System.Windows.Forms.Screen.PrimaryScreen!;
+    }
+
+    /// <summary>
+    /// Horizontal centre of the island in screen pixels. Left/right placement keeps the resting pill's
+    /// centre fixed, so it grows inward when it opens instead of off the screen.
+    /// </summary>
+    private double IslandCentreX(System.Drawing.Rectangle screen, double scale)
+    {
+        var margin = 24 * scale;
+        var half = Math.Max(CompactSize().Width, double.IsNaN(Island.Width) ? 0 : Island.Width) * scale / 2;
+        return Settings.Current.Side switch
+        {
+            IslandSide.Left => screen.Left + margin + half,
+            IslandSide.Right => screen.Right - margin - half,
+            _ => screen.Left + screen.Width / 2.0,
+        };
     }
 
     public void ToggleHidden()
@@ -363,11 +388,12 @@ public partial class IslandWindow : Window
 
     private void AnimateTo(Size size, bool animate = true, bool bouncy = true)
     {
+        var round = Math.Clamp(Settings.Current.Roundness, 0, 1);
         var radius = _mode switch
         {
-            Mode.Expanded => 28.0,
-            Mode.Peek => 26.0,
-            _ => size.Height / 2,
+            Mode.Expanded => 6 + 22 * round,
+            Mode.Peek => 6 + 20 * round,
+            _ => Math.Max(4, size.Height / 2 * round),
         };
         var cr = IsNotch ? new CornerRadius(0, 0, radius, radius) : new CornerRadius(radius);
 
@@ -469,10 +495,46 @@ public partial class IslandWindow : Window
         if (_mode is Mode.Compact or Mode.Hidden) NextPeek();
     }
 
+    // Notifications that arrive together stack; the mouse wheel flips through them.
+    private readonly List<(string icon, string title, string body)> _peekBurst = new();
+    private int _peekIndex = -1;
+
+    private void Island_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (_mode != Mode.Peek) return;
+        e.Handled = true;
+        if (e.Delta < 0)
+        {
+            if (_peekIndex < _peekBurst.Count - 1) ShowPeekAt(_peekIndex + 1);
+            else if (_peeks.Count > 0) NextPeek();
+        }
+        else if (_peekIndex > 0)
+        {
+            ShowPeekAt(_peekIndex - 1);
+        }
+        _peekTimer.Stop();
+        _peekTimer.Start();
+    }
+
+    private void ShowPeekAt(int i)
+    {
+        _peekIndex = i;
+        var (icon, title, body) = _peekBurst[i];
+        PeekIcon.Text = icon;
+        PeekTitle.Text = title;
+        PeekBody.Text = body;
+        PeekBody.Visibility = string.IsNullOrWhiteSpace(body) ? Visibility.Collapsed : Visibility.Visible;
+        var total = _peekBurst.Count + _peeks.Count;
+        PeekCount.Text = total > 1 ? $"{i + 1}/{total}" : "";
+        PeekCount.Visibility = total > 1 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void NextPeek()
     {
         if (_mode == Mode.Expanded || _peeks.Count == 0) return;
         var (icon, title, body) = _peeks.Dequeue();
+        _peekBurst.Add((icon, title, body));
+        ShowPeekAt(_peekBurst.Count - 1);
         PeekIcon.Text = icon;
         PeekTitle.Text = title;
         PeekBody.Text = body;
@@ -488,6 +550,7 @@ public partial class IslandWindow : Window
         // Peeks show even over fullscreen apps for a moment.
         Island.Visibility = _hiddenByUser ? Visibility.Hidden : Visibility.Visible;
         UpdateCompactLayout();
+        _peekTimer.Interval = TimeSpan.FromSeconds(Math.Clamp(Settings.Current.PeekSeconds, 2, 30));
         _peekTimer.Stop();
         _peekTimer.Start();
     }
@@ -500,6 +563,8 @@ public partial class IslandWindow : Window
             NextPeek();
             return;
         }
+        _peekBurst.Clear();
+        _peekIndex = -1;
         _mode = Mode.Compact;
         Fade(Peek, false, 80 * Speed);
         Fade(Compact, true, 200 * Speed, 140 * Speed);
@@ -516,7 +581,7 @@ public partial class IslandWindow : Window
         _collapseDelay.Stop();
         if (_mode != Mode.Expanded && _mode != Mode.Strip)
         {
-            _expandDelay.Interval = TimeSpan.FromMilliseconds(140 * Speed);
+            _expandDelay.Interval = TimeSpan.FromMilliseconds(Math.Clamp(Settings.Current.OpenDelayMs, 0, 1500));
             _expandDelay.Start();
         }
     }
@@ -604,10 +669,10 @@ public partial class IslandWindow : Window
         if (_mode is not (Mode.Compact or Mode.Hidden)) { _outsideSince = DateTime.MaxValue; return; }
 
         Native.GetCursorPos(out var pt);
-        var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        var screen = TargetScreen().Bounds;
         var scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
         var half = Math.Max(160, CompactSize().Width / 2 + 60) * scale;
-        var cx = screen.Left + screen.Width / 2.0;
+        var cx = IslandCentreX(screen, scale);
         var hot = pt.Y <= screen.Top + 3 && Math.Abs(pt.X - cx) <= half;
         var near = pt.Y <= screen.Top + (Settings.Current.CollapsedHeight + 24 + (IsNotch ? 0 : Settings.Current.DistanceFromTop)) * scale
                    && Math.Abs(pt.X - cx) <= half;
@@ -917,15 +982,42 @@ public partial class IslandWindow : Window
         else if (timerText != null)
             CompactText.Text = timerText;
         else
-            CompactText.Text = now.ToString(timeFmt);
+            CompactText.Text = RestingText(now, timeFmt);
 
                 App.Reminders.Tick();
+    }
+
+    /// <summary>What the pill shows at rest, as chosen in Settings.</summary>
+    private string RestingText(DateTime now, string timeFmt)
+    {
+        var st = _lastStats;
+        switch (Settings.Current.RestingInfo)
+        {
+            case RestingInfo.Date:
+                return now.ToString("ddd d MMM");
+            case RestingInfo.Weather when App.Weather.Current is { } w:
+                return $"{w.Temp:0}°  {w.Description}";
+            case RestingInfo.Battery when st?.Battery is { } b:
+                return st.Charging ? $"{b}% ⚡" : $"{b}%";
+            case RestingInfo.Cpu when st != null:
+                return $"CPU {st.Cpu:0}%";
+            case RestingInfo.Temperature when (_cpuTemp ?? _gpuTemp) is { } t:
+                return $"{t:0}°C";
+            default:
+                return now.ToString(timeFmt);
+        }
     }
 
     private void SlowTick()
     {
         // Stats + battery
         var s = App.Sys.Sample();
+        _lastStats = s;
+        if (Settings.Current.RestingInfo == RestingInfo.Temperature && _mode is Mode.Compact or Mode.Hidden)
+        {
+            _gpuTemp = App.Game.GpuTemp();
+            _cpuTemp ??= App.Game.CpuTemp();
+        }
         CpuBar.Value = s.Cpu; CpuText.Text = $"{s.Cpu:0}%";
         RamBar.Value = s.Ram; RamText.Text = $"{s.Ram:0}%";
         RamBar.ToolTip = $"{s.RamUsedGb:0.0} of {s.RamTotalGb:0.0} GB";
