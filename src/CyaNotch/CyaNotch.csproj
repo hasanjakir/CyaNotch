@@ -35,6 +35,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\cyanotch.ico" />
+    <EmbeddedResource Include="Web\*.html" LogicalName="CyaNotch.Web.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

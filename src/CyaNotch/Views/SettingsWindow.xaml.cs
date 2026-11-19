@@ -41,6 +41,10 @@ public partial class SettingsWindow : Window
 
         ShapeFloating.IsChecked = s.Shape == IslandShape.Floating;
         ShapeNotch.IsChecked = s.Shape == IslandShape.Notch;
+        VizBars.IsChecked = s.VisualizerStyle == VisualizerStyle.Bars;
+        VizTitle.IsChecked = s.VisualizerStyle == VisualizerStyle.BarsWithTitle;
+        VizOff.IsChecked = s.VisualizerStyle == VisualizerStyle.Off;
+        VizMirror.IsChecked = s.VisualizerMirrored;
         Distance.Value = s.DistanceFromTop;
         IslandWidth.Value = s.CollapsedWidth;
         Speed.Value = s.AnimationSpeed;
@@ -114,6 +118,9 @@ public partial class SettingsWindow : Window
         if (_loading) return;
         var s = Settings.Current;
         s.Shape = ShapeNotch.IsChecked == true ? IslandShape.Notch : IslandShape.Floating;
+        s.VisualizerStyle = VizTitle.IsChecked == true ? VisualizerStyle.BarsWithTitle
+                          : VizOff.IsChecked == true ? VisualizerStyle.Off : VisualizerStyle.Bars;
+        s.VisualizerMirrored = VizMirror.IsChecked == true;
         s.DistanceFromTop = Distance.Value;
         s.CollapsedWidth = IslandWidth.Value;
         s.AnimationSpeed = Speed.Value;

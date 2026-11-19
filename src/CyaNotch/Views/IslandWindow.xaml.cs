@@ -41,7 +41,6 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer _weatherTimer = new() { Interval = TimeSpan.FromMinutes(20) };
 
     private readonly Queue<(string icon, string title, string body)> _peeks = new();
-    private Storyboard? _eqStoryboard;
 
     // Timer widget
     private DateTime? _timerEnd;
@@ -134,7 +133,6 @@ public partial class IslandWindow : Window
     {
         PositionWindow();
         ApplyShape(animate: false);
-        BuildEqualizer();
 
         ClipList.ItemsSource = App.Clipboard.Items;
         CollectionViewSource.GetDefaultView(App.Clipboard.Items).Filter = ClipFilterPredicate;
@@ -200,6 +198,7 @@ public partial class IslandWindow : Window
     {
         var hide = _hiddenByUser || (_hiddenForFullscreen && _mode != Mode.Expanded);
         Island.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
+        UpdateCompactLayout();
     }
 
     public void Shutdown()
@@ -220,6 +219,7 @@ public partial class IslandWindow : Window
             Themes.Apply(Settings.Current.Theme);
             RegisterMicHotkey();
             ApplyShape(animate: true);
+            UpdateCompactLayout();
             WorldList.ItemsSource = null;
             SlowTick();
             _ = App.Weather.RefreshAsync();
@@ -238,7 +238,7 @@ public partial class IslandWindow : Window
         var w = Settings.Current.CollapsedWidth;
         var h = Settings.Current.CollapsedHeight;
         var m = App.Media.State;
-        if (m.HasSession && m.IsPlaying) w += 70;
+        if (m.HasSession && m.IsPlaying) w += Settings.Current.VisualizerStyle == VisualizerStyle.Off ? 70 : 130;
         if (_callStart != null) w += 40;
         if (_timerEnd != null) w += 30;
         return new Size(w, h);
@@ -365,6 +365,7 @@ public partial class IslandWindow : Window
         }
         // Peeks show even over fullscreen apps for a moment.
         Island.Visibility = _hiddenByUser ? Visibility.Hidden : Visibility.Visible;
+        UpdateCompactLayout();
         _peekTimer.Stop();
         _peekTimer.Start();
     }
@@ -609,21 +610,28 @@ public partial class IslandWindow : Window
     // Media
     // =====================================================================
 
-    private void BuildEqualizer()
+    /// <summary>
+    /// Decides what the collapsed pill shows. While music plays the visualizer spans the whole pill;
+    /// depending on the setting the title sits on top of it or is hidden.
+    /// </summary>
+    private void UpdateCompactLayout()
     {
-        _eqStoryboard = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
-        var bars = new[] { Eq1, Eq2, Eq3, Eq4 };
-        var rnd = new Random(7);
-        for (int i = 0; i < bars.Length; i++)
-        {
-            var anim = new DoubleAnimationUsingKeyFrames { Duration = TimeSpan.FromMilliseconds(900 + i * 130) };
-            for (int k = 0; k <= 4; k++)
-                anim.KeyFrames.Add(new EasingDoubleKeyFrame(k is 0 or 4 ? 0.35 : 0.25 + rnd.NextDouble() * 0.75,
-                    KeyTime.FromPercent(k / 4.0), new SineEase()));
-            Storyboard.SetTarget(anim, bars[i]);
-            Storyboard.SetTargetProperty(anim, new PropertyPath("(0).(1)", UIElement.RenderTransformProperty, ScaleTransform.ScaleYProperty));
-            _eqStoryboard.Children.Add(anim);
-        }
+        var m = App.Media.State;
+        var playing = m.HasSession && m.IsPlaying;
+        var style = Settings.Current.VisualizerStyle;
+        var showViz = playing && style != VisualizerStyle.Off;
+        var vizOnly = showViz && style == VisualizerStyle.Bars;
+
+        Viz.Mirrored = Settings.Current.VisualizerMirrored;
+        Viz.Visibility = showViz ? Visibility.Visible : Visibility.Collapsed;
+        Viz.Opacity = style == VisualizerStyle.BarsWithTitle ? 0.45 : 1.0;
+        Viz.Active = showViz && _mode == Mode.Compact && Island.Visibility == Visibility.Visible;
+        if (!Viz.Active && App.Visualizer.Running) App.Visualizer.Stop();
+
+        var art = playing && m.Artwork != null && !vizOnly;
+        CompactArtBox.Visibility = art ? Visibility.Visible : Visibility.Collapsed;
+        CompactIcon.Visibility = art || vizOnly ? Visibility.Collapsed : Visibility.Visible;
+        CompactText.Visibility = vizOnly ? Visibility.Hidden : Visibility.Visible;
     }
 
     private void ApplyMedia(MediaInfo m)
@@ -632,11 +640,8 @@ public partial class IslandWindow : Window
 
         // compact
         CompactArt.ImageSource = m.Artwork;
-        CompactArtBox.Visibility = playing && m.Artwork != null ? Visibility.Visible : Visibility.Collapsed;
-        CompactIcon.Visibility = CompactArtBox.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-        CompactIcon.Text = playing ? "" : "";
-        Eq.Visibility = playing ? Visibility.Visible : Visibility.Collapsed;
-        if (playing) _eqStoryboard?.Begin(this, true); else _eqStoryboard?.Pause(this);
+        CompactIcon.Text = playing ? "\uE8D6" : "\uE823";
+        UpdateCompactLayout();
 
         // expanded
         MediaApp.Text = m.HasSession ? m.AppName : "Nothing playing";
@@ -1034,7 +1039,7 @@ public partial class IslandWindow : Window
         App.Audio.ToggleMic();
         var muted = App.Audio.MicMuted;
         if (_mode != Mode.Expanded)
-            ShowPeek(muted ? "" : "", muted ? "Microphone muted" : "Microphone on", "In every app · Ctrl+Alt+M");
+            ShowPeek(muted ? "" : "", muted ? "Microphone muted" : "Microphone on", "In every app · Ctrl+Alt+M");
     }
 
     private void UpdateMicUi()
@@ -1042,7 +1047,7 @@ public partial class IslandWindow : Window
         var muted = App.Audio.MicMuted;
         MicMutedIcon.Visibility = muted ? Visibility.Visible : Visibility.Collapsed;
         MicTile.IsChecked = muted;
-        MicTileIcon.Text = muted ? "" : "";
+        MicTileIcon.Text = muted ? "" : "";
     }
 
     // =====================================================================

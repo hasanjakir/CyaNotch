@@ -24,6 +24,7 @@ public partial class App : Application
     public static SystemService Sys { get; } = new();
     public static ReminderService Reminders { get; } = new();
     public static WeatherService Weather { get; } = new();
+    public static VisualizerService Visualizer { get; } = new();
 
     public static new App Current => (App)Application.Current;
 
@@ -116,6 +117,7 @@ public partial class App : Application
         _island?.Shutdown();
         Clipboard.Save();
         Audio.Dispose();
+        Visualizer.Dispose();
         Shutdown();
     }
 

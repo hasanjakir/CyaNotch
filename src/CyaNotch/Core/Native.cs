@@ -177,6 +177,52 @@ internal static class Native
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
     }
 
+    public const uint INPUT_MOUSE = 0;
+    public const uint MOUSEEVENTF_MOVE = 0x0001, MOUSEEVENTF_LEFTDOWN = 0x0002, MOUSEEVENTF_LEFTUP = 0x0004,
+                      MOUSEEVENTF_RIGHTDOWN = 0x0008, MOUSEEVENTF_RIGHTUP = 0x0010, MOUSEEVENTF_WHEEL = 0x0800,
+                      MOUSEEVENTF_HWHEEL = 0x1000;
+    public const uint KEYEVENTF_EXTENDEDKEY = 0x0001, KEYEVENTF_UNICODE = 0x0004;
+
+    public static void Mouse(uint flags, int dx = 0, int dy = 0, int data = 0)
+    {
+        var input = new INPUT
+        {
+            type = INPUT_MOUSE,
+            U = new InputUnion { mi = new MOUSEINPUT { dx = dx, dy = dy, mouseData = unchecked((uint)data), dwFlags = flags } },
+        };
+        SendInput(1, new[] { input }, Marshal.SizeOf<INPUT>());
+    }
+
+    /// <summary>Presses and releases one key; extended keys are arrows, Home/End and similar.</summary>
+    public static void Tap(ushort vk, bool extended = false)
+    {
+        var f = extended ? KEYEVENTF_EXTENDEDKEY : 0;
+        var inputs = new[]
+        {
+            new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = vk, dwFlags = f } } },
+            new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wVk = vk, dwFlags = f | KEYEVENTF_KEYUP } } },
+        };
+        SendInput(2, inputs, Marshal.SizeOf<INPUT>());
+    }
+
+    /// <summary>Types text as Unicode characters, independent of keyboard layout.</summary>
+    public static void TypeText(string text)
+    {
+        var list = new System.Collections.Generic.List<INPUT>();
+        foreach (var ch in text)
+        {
+            if (ch == '\n') { Tap(0x0D); continue; }
+            list.Add(new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wScan = ch, dwFlags = KEYEVENTF_UNICODE } } });
+            list.Add(new INPUT { type = INPUT_KEYBOARD, U = new InputUnion { ki = new KEYBDINPUT { wScan = ch, dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP } } });
+        }
+        if (list.Count > 0) SendInput((uint)list.Count, list.ToArray(), Marshal.SizeOf<INPUT>());
+    }
+
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    public static readonly IntPtr HWND_BOTTOM = new(1);
+
     /// <summary>True when the foreground window covers its whole monitor (game, video, slideshow).</summary>
     public static bool IsForegroundFullscreen(IntPtr self)
     {

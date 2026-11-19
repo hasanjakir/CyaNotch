@@ -8,6 +8,24 @@ namespace CyaNotch.Core;
 
 public enum IslandShape { Floating, Notch }
 
+public enum GameMode { Strip, Hide, Off }
+
+/// <summary>Bars: visualizer fills the pill. BarsWithTitle: title over dimmed bars. Off: artwork + title only.</summary>
+public enum VisualizerStyle { Bars, BarsWithTitle, Off }
+
+public sealed class DeckApp
+{
+    public string Name { get; set; } = "";
+    public string Path { get; set; } = "";
+}
+
+public sealed class WidgetPin
+{
+    public string Kind { get; set; } = "Clock";
+    public double Left { get; set; } = 80;
+    public double Top { get; set; } = 120;
+}
+
 public sealed class WorldClock
 {
     public string Label { get; set; } = "";
@@ -25,6 +43,22 @@ public sealed class Settings
     public double CollapsedWidth { get; set; } = 200;
     public double CollapsedHeight { get; set; } = 34;
     public bool HideInFullscreen { get; set; } = true;
+    /// <summary>What the island does over fullscreen games and videos.</summary>
+    public GameMode FullscreenMode { get; set; } = GameMode.Strip;
+    public VisualizerStyle VisualizerStyle { get; set; } = VisualizerStyle.Bars;
+    public bool VisualizerMirrored { get; set; } = true;
+    public bool LyricsEnabled { get; set; } = false;
+    public bool LyricsInPill { get; set; } = false;
+    public bool DeckEnabled { get; set; } = false;
+    public string? DeckKey { get; set; }
+    public List<string> ApprovedPhones { get; set; } = new();
+    public List<DeckApp> DeckApps { get; set; } = new()
+    {
+        new DeckApp { Name = "File Explorer", Path = "explorer.exe" },
+        new DeckApp { Name = "Calculator", Path = "calc.exe" },
+        new DeckApp { Name = "Task Manager", Path = "taskmgr.exe" },
+    };
+    public List<WidgetPin> PinnedWidgets { get; set; } = new();
     public bool StartWithWindows { get; set; } = false;
     public bool MicMuteHotkey { get; set; } = true;
     public bool ShowNotifications { get; set; } = true;

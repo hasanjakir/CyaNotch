@@ -1,6 +1,7 @@
 <Window x:Class="CyaNotch.Views.IslandWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CyaNotch.Views"
         Title="CyaNotch Island"
         Width="760" Height="560"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
@@ -190,6 +191,10 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- music visualizer: spans the whole pill while something is playing -->
+                    <local:VisualizerBars x:Name="Viz" Grid.ColumnSpan="3" Margin="4,7" Visibility="Collapsed"
+                                          BarBrush="{DynamicResource AccentBrush}" IsHitTestVisible="False"/>
+
                     <!-- left: artwork or status icon -->
                     <Grid Grid.Column="0" VerticalAlignment="Center">
                         <Border x:Name="CompactArtBox" Width="22" Height="22" CornerRadius="6" Visibility="Collapsed">
@@ -211,12 +216,6 @@
                             <TextBlock x:Name="CallTime" FontSize="11.5" FontWeight="SemiBold" Text="0:00" Foreground="#3DDC84"/>
                         </StackPanel>
                         <TextBlock x:Name="MicMutedIcon" Style="{StaticResource Icon}" FontSize="13" Text="&#xEC54;" Foreground="{StaticResource DangerBrush}" Visibility="Collapsed" Margin="0,0,6,0" ToolTip="Microphone muted (Ctrl+Alt+M)"/>
-                        <StackPanel x:Name="Eq" Orientation="Horizontal" Height="14" Visibility="Collapsed">
-                            <Rectangle x:Name="Eq1" Width="3" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{DynamicResource AccentBrush}" Height="14" RenderTransformOrigin="0.5,1"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.4"/></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle x:Name="Eq2" Width="3" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{DynamicResource AccentBrush}" Height="14" RenderTransformOrigin="0.5,1"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.8"/></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle x:Name="Eq3" Width="3" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{DynamicResource AccentBrush}" Height="14" RenderTransformOrigin="0.5,1"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.6"/></Rectangle.RenderTransform></Rectangle>
-                            <Rectangle x:Name="Eq4" Width="3" RadiusX="1.5" RadiusY="1.5" Margin="1,0" Fill="{DynamicResource AccentBrush}" Height="14" RenderTransformOrigin="0.5,1"><Rectangle.RenderTransform><ScaleTransform ScaleY="0.3"/></Rectangle.RenderTransform></Rectangle>
-                        </StackPanel>
                         <TextBlock x:Name="CompactRight" Style="{StaticResource Sub}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
