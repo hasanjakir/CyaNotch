@@ -63,6 +63,8 @@ public partial class SettingsWindow : Window
         var seen = App.Media.KnownApps();
         MediaSeen.Text = seen.Length == 0 ? "" : "Apps playing media right now: " + string.Join(", ", seen);
         HideCapture.IsChecked = s.HideFromCapture;
+        TaskbarOn.IsChecked = s.TaskbarEnabled;
+        TaskbarHideWin.IsChecked = s.TaskbarHideWindows;
 
         ShapeFloating.IsChecked = s.Shape == IslandShape.Floating;
         ShapeNotch.IsChecked = s.Shape == IslandShape.Notch;
@@ -256,6 +258,8 @@ public partial class SettingsWindow : Window
         s.MediaFilter = MediaMusic.IsChecked == true ? MediaFilter.MusicApps : MediaExcept.IsChecked == true ? MediaFilter.AllExcept : MediaFilter.All;
         s.MediaIgnoredApps = MediaIgnore.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
         s.HideFromCapture = HideCapture.IsChecked == true;
+        s.TaskbarEnabled = TaskbarOn.IsChecked == true;
+        s.TaskbarHideWindows = TaskbarHideWin.IsChecked == true;
         s.DistanceFromTop = Distance.Value;
         s.CollapsedWidth = IslandWidth.Value;
         s.AnimationSpeed = Speed.Value;
