@@ -131,25 +131,25 @@
             <Style x:Key="TabButton" TargetType="RadioButton">
                 <Setter Property="Foreground" Value="{DynamicResource SubTextBrush}"/>
                 <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
-                <Setter Property="FontSize" Value="15"/>
-                <Setter Property="Width" Value="34"/>
-                <Setter Property="Height" Value="30"/>
+                <Setter Property="FontSize" Value="13.5"/>
+                <Setter Property="Width" Value="22"/>
+                <Setter Property="Height" Value="26"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Focusable" Value="False"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
-                            <Border x:Name="Bd" Background="Transparent" CornerRadius="10" Margin="1,0">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="7">
                                 <Grid>
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3"/>
                                     <!-- small dot under the open tab -->
-                                    <Ellipse x:Name="Dot" Width="4" Height="4" Fill="{DynamicResource TextBrush}"
+                                    <Ellipse x:Name="Dot" Width="3.5" Height="3.5" Fill="{DynamicResource AccentBrush}"
                                              HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,1" Opacity="0"/>
                                 </Grid>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -159,6 +159,110 @@
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+            </Style>
+
+            <!-- A plain icon in the island's top row (phone, settings) -->
+            <Style x:Key="HeaderIcon" TargetType="Button">
+                <Setter Property="Foreground" Value="{DynamicResource SubTextBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
+                <Setter Property="FontSize" Value="13.5"/>
+                <Setter Property="Width" Value="22"/>
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="Transparent">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Quick-control tile: grey when off, tinted with its Tag colour when on -->
+            <Style x:Key="QuickTile" TargetType="ToggleButton">
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Margin" Value="3"/>
+                <Setter Property="Tag" Value="#2F8CFF"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Grid>
+                                <Border x:Name="Bd" CornerRadius="14" Background="#1CFFFFFF"/>
+                                <Border x:Name="Tint" CornerRadius="14" Background="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Opacity="0"/>
+                                <ContentPresenter Margin="9,7" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Tint" Property="Opacity" Value="0.24"/>
+                                    <Setter TargetName="Bd" Property="Background" Value="#14FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#2AFFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.45"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <!-- the round icon inside a QuickTile: lights up in the tile's colour when on -->
+            <Style x:Key="TileDot" TargetType="Ellipse">
+                <Setter Property="Width" Value="22"/>
+                <Setter Property="Height" Value="22"/>
+                <Setter Property="Fill" Value="#2EFFFFFF"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                        <Setter Property="Fill" Value="{Binding Tag, RelativeSource={RelativeSource AncestorType=ToggleButton}}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Segmented choice (power mode, settings choices): white pill under the picked one -->
+            <Style x:Key="Seg" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{DynamicResource SubTextBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                <Setter Property="Padding" Value="12,5"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="Bd" CornerRadius="9" Background="Transparent" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#F2F2F2"/>
+                                    <Setter Property="Foreground" Value="#111111"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Widget card on the island's Widgets tab -->
+            <Style x:Key="WTile" TargetType="Border">
+                <Setter Property="CornerRadius" Value="16"/>
+                <Setter Property="Background" Value="#16FFFFFF"/>
+                <Setter Property="Padding" Value="10,8"/>
             </Style>
 
             <!-- Text filter chips -->

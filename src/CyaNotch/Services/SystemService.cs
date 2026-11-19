@@ -171,4 +171,88 @@ public sealed class SystemService
 
     public static void OpenNightLight() => OpenSettings("nightlight");
     public static void OpenFocus() => OpenSettings("focus");
+
+    // ---------- Night light ----------
+    // Windows keeps Night light's on/off state in a CloudStore blob. Flipping the state byte (and the
+    // two bytes that go with it) and bumping the blob's timestamp makes Windows apply it right away.
+
+    private const string NightLightKey =
+        @"Software\Microsoft\Windows\CurrentVersion\CloudStore\Store\DefaultAccount\Current\default$windows.data.bluelightreduction.bluelightreductionstate\windows.data.bluelightreduction.bluelightreductionstate";
+
+    /// <summary>Night light's state, or null if this PC doesn't have it.</summary>
+    public bool? NightLightOn()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(NightLightKey);
+            if (key?.GetValue("Data") is not byte[] data || data.Length < 24) return null;
+            return data[18] == 0x15;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Turns Night light on or off. False if it couldn't (then open Settings instead).</summary>
+    public bool SetNightLight(bool on)
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(NightLightKey, writable: true);
+            if (key?.GetValue("Data") is not byte[] data || data.Length < 24) return false;
+            var isOn = data[18] == 0x15;
+            if (isOn == on) return true;
+            byte[] next;
+            if (on)
+            {
+                next = new byte[data.Length + 2];
+                Array.Copy(data, 0, next, 0, 22);
+                next[22] = 0x10;
+                next[23] = 0x00;
+                Array.Copy(data, 22, next, 24, data.Length - 22);
+                next[18] = 0x15;
+            }
+            else
+            {
+                next = new byte[data.Length - 2];
+                Array.Copy(data, 0, next, 0, 22);
+                Array.Copy(data, 24, next, 22, data.Length - 24);
+                next[18] = 0x13;
+            }
+            for (var i = 10; i < 15; i++)
+                if (next[i] != 0xFF) { next[i]++; break; }
+            key.SetValue("Data", next, Microsoft.Win32.RegistryValueKind.Binary);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Night light failed", ex);
+            return false;
+        }
+    }
+
+    // ---------- Do not disturb ----------
+    // The global "show notifications" switch. Off means Windows keeps banners quiet (Do not disturb).
+
+    private const string ToastKey = @"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings";
+
+    public bool DoNotDisturb
+    {
+        get
+        {
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(ToastKey);
+                return key?.GetValue("NOC_GLOBAL_SETTING_TOASTS_ENABLED") is int v && v == 0;
+            }
+            catch { return false; }
+        }
+        set
+        {
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(ToastKey, writable: true);
+                key.SetValue("NOC_GLOBAL_SETTING_TOASTS_ENABLED", value ? 0 : 1, Microsoft.Win32.RegistryValueKind.DWord);
+            }
+            catch (Exception ex) { Log.Error("Do not disturb failed", ex); }
+        }
+    }
 }

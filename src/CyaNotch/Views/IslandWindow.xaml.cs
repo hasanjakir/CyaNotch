@@ -365,7 +365,7 @@ public partial class IslandWindow : Window
             UpdateCompactLayout();
             _lyricsKey = "";
             LoadLyrics(App.Media.State);
-            WorldList.ItemsSource = null;
+            _calDay = default;
             SlowTick();
             _ = App.Weather.RefreshAsync();
         });
@@ -393,7 +393,30 @@ public partial class IslandWindow : Window
 
     private static Size PeekSize() => new(400, 64);
     /// <summary>The music tab is a compact card; the other tabs need more room.</summary>
-    private Size ExpandedSize() => TabHome?.IsChecked == true ? new Size(600, 272) : new Size(700, 430);
+    /// <summary>The open card is narrow and only as tall as the tab needs, like a phone's island.</summary>
+    private Size ExpandedSize()
+    {
+        const double w = 400;
+        if (QrOverlay?.Visibility == Visibility.Visible) return new Size(w, 196);
+        if (TabHome?.IsChecked == true) return new Size(w, LyricsBox?.Visibility == Visibility.Visible ? 222 : 166);
+        if (TabControls?.IsChecked == true) return new Size(w, 214);
+        if (TabWidgets?.IsChecked == true) return new Size(w, 206);
+        if (TabCalls?.IsChecked == true) return new Size(w, 182);
+        if (TabWeb?.IsChecked == true) return new Size(w, 214);
+        if (TabFocus?.IsChecked == true) return new Size(w, 214);
+        return new Size(w, 248);
+    }
+
+    private Size _lastExpandedTarget;
+
+    /// <summary>Re-fits the open card after its content changes (lyrics on/off, phone code shown).</summary>
+    private void RefitExpanded()
+    {
+        if (_mode != Mode.Expanded) return;
+        var size = ExpandedSize();
+        if (size == _lastExpandedTarget) return;
+        AnimateTo(size, bouncy: false);
+    }
     private static Size StripSize() => new(440, 24);
     private static Size GlanceSize() => new(470, 34);
     private Size HiddenSize() => new(Settings.Current.CollapsedWidth * 0.6, 0);
@@ -416,10 +439,11 @@ public partial class IslandWindow : Window
 
     private void AnimateTo(Size size, bool animate = true, bool bouncy = true)
     {
+        if (_mode == Mode.Expanded) _lastExpandedTarget = size;
         var round = Math.Clamp(Settings.Current.Roundness, 0, 1);
         var radius = _mode switch
         {
-            Mode.Expanded => 6 + 22 * round,
+            Mode.Expanded => 6 + 28 * round,
             Mode.Peek => 6 + 20 * round,
             _ => Math.Max(4, size.Height / 2 * round),
         };
@@ -492,6 +516,9 @@ public partial class IslandWindow : Window
             Strip.Visibility = Visibility.Collapsed;
         }
         _mode = Mode.Expanded;
+        TabAgents.Visibility = Settings.Current.AgentsEnabled ? Visibility.Visible : Visibility.Collapsed;
+        if (TabAgents.IsChecked == true && !Settings.Current.AgentsEnabled) TabHome.IsChecked = true;
+        UpdateDeckUi();
         ApplyBackdrop();
         UpdateVisibility();
         Fade(Compact, false, 90 * Speed);
@@ -881,6 +908,7 @@ public partial class IslandWindow : Window
             App.Deck.Stop();
             Settings.Current.DeckEnabled = false;
             QrOverlay.Visibility = Visibility.Collapsed;
+            RefitExpanded();
         }
         else
         {
@@ -918,18 +946,21 @@ public partial class IslandWindow : Window
         }
         QrUrl.Text = url;
         QrOverlay.Visibility = Visibility.Visible;
+        RefitExpanded();
     }
 
-    private void QrClose_Click(object sender, RoutedEventArgs e) => QrOverlay.Visibility = Visibility.Collapsed;
+    private void QrClose_Click(object sender, RoutedEventArgs e)
+    {
+        QrOverlay.Visibility = Visibility.Collapsed;
+        RefitExpanded();
+    }
 
     private void UpdateDeckUi()
     {
-        var on = App.Deck.Active;
-        DeckToggle.Content = on ? "Turn off" : "Turn on";
-        DeckShow.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-        DeckState.Text = on
-            ? $"On · {Settings.Current.ApprovedPhones.Count} approved phone(s)"
-            : "Use your phone as a trackpad and remote";
+        HeaderPhone.SetResourceReference(ForegroundProperty, App.Deck.Active ? "AccentBrush" : "SubTextBrush");
+        HeaderPhone.ToolTip = App.Deck.Active
+            ? $"Phone remote is on · {Settings.Current.ApprovedPhones.Count} approved phone(s)"
+            : "Phone remote";
     }
 
     // =====================================================================
@@ -949,7 +980,6 @@ public partial class IslandWindow : Window
     {
         var now = DateTime.Now;
         var timeFmt = Settings.Current.Use24Hour ? "HH:mm" : "h:mm";
-        HeaderClock.Text = now.ToString(timeFmt + (Settings.Current.Use24Hour ? "" : " tt"));
 
         // Timer
         string? timerText = null;
@@ -959,7 +989,6 @@ public partial class IslandWindow : Window
             if (left <= TimeSpan.Zero)
             {
                 _timerEnd = null;
-                TimerText.Text = "00:00";
                 ShowPeek("", "Time's up", "Your timer finished");
                 System.Media.SystemSounds.Exclamation.Play();
                 AnimateIfCompact();
@@ -967,7 +996,6 @@ public partial class IslandWindow : Window
             else
             {
                 timerText = left.TotalHours >= 1 ? left.ToString(@"h\:mm\:ss") : left.ToString(@"mm\:ss");
-                TimerText.Text = timerText;
             }
         }
 
@@ -1011,7 +1039,8 @@ public partial class IslandWindow : Window
             AnimateIfCompact();
         }
         if (rec != null) RecTime.Text = rec;
-        HeaderRecStop.Visibility = App.Capture.Recording ? Visibility.Visible : Visibility.Collapsed;
+        var recording = App.Capture.Recording || App.Obs.Recording;
+        RecMark.RadiusX = RecMark.RadiusY = recording ? 1.5 : 3.25;
 
         // Call timer
         if (_callStart is { } cs) CallTime.Text = Fmt(now - cs);
@@ -1074,32 +1103,9 @@ public partial class IslandWindow : Window
             _gpuTemp = App.Game.GpuTemp();
             _cpuTemp ??= App.Game.CpuTemp();
         }
-        CpuBar.Value = s.Cpu; CpuText.Text = $"{s.Cpu:0}%";
-        RamBar.Value = s.Ram; RamText.Text = $"{s.Ram:0}%";
-        RamBar.ToolTip = $"{s.RamUsedGb:0.0} of {s.RamTotalGb:0.0} GB";
-        if (s.Gpu is { } g) { GpuBar.Value = g; GpuText.Text = $"{g:0}%"; }
-        else GpuText.Text = "n/a";
-        if (s.Battery is { } b)
-        {
-            BatteryBar.Value = b;
-            BatteryText.Text = $"{b}%";
-            BatteryIcon.Text = s.Charging ? "" : "";
-        }
-        else
-        {
-            BatteryText.Text = s.Charging ? "AC" : "";
-            BatteryIcon.Text = "";
-        }
-
-        // Clocks
-        var now = DateTime.Now;
-        BigClock.Text = now.ToString(Settings.Current.Use24Hour ? "HH:mm" : "h:mm tt");
-        BigDate.Text = now.ToString("dddd, d MMMM");
-        WorldList.ItemsSource = Settings.Current.WorldClocks.Select(w => new
-        {
-            w.Label,
-            Time = WorldTime(w.TimeZoneId),
-        }).ToList();
+        PushStats(s);
+        UpdateCalendar(DateTime.Now);
+        UpdateFocusWidget();
 
         // Call detection
         var inUse = App.Audio.IsMicInUse();
@@ -1178,6 +1184,7 @@ public partial class IslandWindow : Window
         PageCalls.Visibility = TabCalls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageStream.Visibility = TabStream.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageAgents.Visibility = TabAgents.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (sender is RadioButton { IsChecked: true } && QrOverlay.Visibility == Visibility.Visible) QrOverlay.Visibility = Visibility.Collapsed;
         if (_mode == Mode.Expanded) AnimateTo(ExpandedSize(), bouncy: false);
         foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabLauncher, TabFocus, TabAgents, TabStream, TabCalls, TabReminders })
             if (t.IsChecked == true) { Settings.Current.LastTab = t.Name; break; }
@@ -1263,14 +1270,8 @@ public partial class IslandWindow : Window
         }
     }
 
-    /// <summary>The big visualizer in the music card: shown while music plays and no lyrics take the space.</summary>
-    private void UpdateCardViz()
-    {
-        var show = MusicPlaying && LyricsBox.Visibility != Visibility.Visible;
-        CardViz.Mirrored = Settings.Current.VisualizerMirrored;
-        CardViz.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        CardViz.Active = show && _mode == Mode.Expanded && TabHome.IsChecked == true && Island.Visibility == Visibility.Visible;
-    }
+    /// <summary>Lyrics on or off changes how tall the music card is.</summary>
+    private void UpdateCardViz() => RefitExpanded();
 
     private void UpdateCompactLayout()
     {
@@ -1365,7 +1366,19 @@ public partial class IslandWindow : Window
         }
     }
 
-    private void HeaderRecStop_Click(object sender, RoutedEventArgs e) => App.Capture.ToggleRecording();
+    /// <summary>Red button in the top row: stops a recording, otherwise opens the capture page.</summary>
+    private void HeaderRec_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Capture.Recording) App.Capture.ToggleRecording();
+        else TabStream.IsChecked = true;
+    }
+
+    private void HeaderPhone_Click(object sender, RoutedEventArgs e)
+    {
+        if (QrOverlay.Visibility == Visibility.Visible) { QrClose_Click(sender, e); return; }
+        if (App.Deck.Active && App.Deck.Url is { } url) ShowQr(url);
+        else DeckToggle_Click(sender, e);
+    }
 
     private void LyricsToggle_Click(object sender, RoutedEventArgs e)
     {
@@ -1394,12 +1407,11 @@ public partial class IslandWindow : Window
 
     private void ApplyWeather(Weather w)
     {
-        var unit = Settings.Current.UseFahrenheit ? "°F" : "°C";
         WeatherIcon.Text = w.Glyph;
-        WeatherTemp.Text = $"{w.Temp:0}{unit}  {w.Description}";
-        WeatherDesc.Text = $"H {w.High:0}°  ·  L {w.Low:0}°";
-        WeatherPlace.Text = w.Place;
-        WeatherPlace.Visibility = Visibility.Visible;
+        WeatherTemp.Text = $"{w.Temp:0}°";
+        WeatherDesc.Text = w.Description;
+        WeatherHiLo.Text = $"H {w.High:0}°  L {w.Low:0}°";
+        WeatherTemp.ToolTip = w.Place;
     }
 
     private void Weather_Click(object sender, MouseButtonEventArgs e)
@@ -1423,7 +1435,6 @@ public partial class IslandWindow : Window
     private void TimerStop_Click(object sender, RoutedEventArgs e)
     {
         _timerEnd = null;
-        TimerText.Text = "00:00";
         FastTick();
     }
 
@@ -1635,13 +1646,23 @@ public partial class IslandWindow : Window
         {
             RefreshControlsQuiet();
             var b = App.Sys.GetBrightness();
-            BrightnessRow.Visibility = b == null ? Visibility.Collapsed : Visibility.Visible;
-            if (b != null) { BrightnessSlider.Value = b.Value; BrightnessText.Text = $"{b}%"; }
+            BrightnessSlider.IsEnabled = b != null;
+            BrightnessSlider.Opacity = b == null ? 0.4 : 1;
+            BrightnessSlider.ToolTip = b == null ? "This screen's brightness can't be changed from here" : "Brightness";
+            if (b != null && !BrightnessSlider.IsDragging) BrightnessSlider.Value = b.Value;
 
             var p = App.Sys.GetPowerMode();
             PowerEff.IsChecked = p == SystemService.PowerBattery;
             PowerPerf.IsChecked = p == SystemService.PowerPerformance;
             PowerBal.IsChecked = PowerEff.IsChecked != true && PowerPerf.IsChecked != true;
+
+            var night = App.Sys.NightLightOn();
+            NightTile.IsChecked = night == true;
+            NightState.Text = night == null ? "Settings" : night == true ? "On" : "Off";
+
+            var dnd = App.Sys.DoNotDisturb;
+            FocusTile.IsChecked = dnd;
+            FocusState.Text = dnd ? "On" : "Off";
 
             var wifi = await App.Sys.GetRadioAsync(RadioKind.WiFi);
             WifiTile.IsEnabled = wifi != null;
@@ -1663,22 +1684,21 @@ public partial class IslandWindow : Window
     {
         var was = _refreshingControls;
         _refreshingControls = true;
-        if (!VolumeSlider.IsMouseCaptureWithin)
-        {
-            var v = App.Audio.Volume * 100;
-            VolumeSlider.Value = v;
-            VolumeText.Text = $"{v:0}%";
-        }
-        SpeakerBtn.Content = App.Audio.SpeakerMuted ? "" : "";
+        if (!VolumeSlider.IsDragging) VolumeSlider.Value = Math.Round(App.Audio.Volume * 100);
+        var muted = App.Audio.SpeakerMuted;
+        MuteTile.IsChecked = muted;
+        MuteState.Text = muted ? "Sound off" : "Sound on";
+        MuteTileGlyph.Text = muted ? "\uE74F" : "\uE767";
+        VolumeSlider.Glyph = muted ? "\uE74F" : "\uE767";
         UpdateMicUi();
         _refreshingControls = was;
     }
 
     private void Volume_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (VolumeText == null) return;
-        VolumeText.Text = $"{e.NewValue:0}%";
-        if (!_refreshingControls) App.Audio.Volume = e.NewValue / 100;
+        if (_refreshingControls || !IsLoaded) return;
+        App.Audio.Volume = e.NewValue / 100;
+        if (App.Audio.SpeakerMuted && e.NewValue > 0) { App.Audio.SpeakerMuted = false; RefreshControlsQuiet(); }
     }
 
     private void SpeakerMute_Click(object sender, RoutedEventArgs e)
@@ -1689,10 +1709,17 @@ public partial class IslandWindow : Window
 
     private void Brightness_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        if (BrightnessText != null) BrightnessText.Text = $"{e.NewValue:0}%";
+        if (_refreshingControls || !IsLoaded || !BrightnessSlider.IsDragging) return;
+        // Apply while dragging, at most a few times a second (monitors are slow to answer).
+        if ((DateTime.Now - _lastBrightnessSet).TotalMilliseconds < 120) return;
+        _lastBrightnessSet = DateTime.Now;
+        var v = (int)e.NewValue;
+        Task.Run(() => App.Sys.SetBrightness(v));
     }
 
-    private void Brightness_Commit(object sender, MouseButtonEventArgs e)
+    private DateTime _lastBrightnessSet;
+
+    private void Brightness_Commit(object? sender, EventArgs e)
     {
         var v = (int)BrightnessSlider.Value;
         Task.Run(() => App.Sys.SetBrightness(v));
@@ -1716,23 +1743,29 @@ public partial class IslandWindow : Window
 
     private void NightLight_Click(object sender, RoutedEventArgs e)
     {
-        ((ToggleButton)sender).IsChecked = false;
-        Collapse();
-        SystemService.OpenNightLight();
+        var on = NightTile.IsChecked == true;
+        if (!App.Sys.SetNightLight(on))
+        {
+            NightTile.IsChecked = !on;
+            Collapse();
+            SystemService.OpenNightLight();
+            return;
+        }
+        NightState.Text = on ? "On" : "Off";
     }
 
     private void Focus_Click(object sender, RoutedEventArgs e)
     {
-        ((ToggleButton)sender).IsChecked = false;
-        Collapse();
-        SystemService.OpenFocus();
+        var on = FocusTile.IsChecked == true;
+        App.Sys.DoNotDisturb = on;
+        FocusState.Text = on ? "On" : "Off";
     }
 
-    private void DisplaySettings_Click(object sender, RoutedEventArgs e)
+    private void Battery_Click(object sender, RoutedEventArgs e)
     {
-        ((ToggleButton)sender).IsChecked = false;
+        BatteryTile.IsChecked = _lastStats?.Charging == true;
         Collapse();
-        SystemService.OpenSettings("display");
+        SystemService.OpenSettings("batterysaver");
     }
 
     private void Power_Click(object sender, RoutedEventArgs e)
@@ -1741,6 +1774,195 @@ public partial class IslandWindow : Window
         else if (sender == PowerPerf) App.Sys.SetPowerMode(SystemService.PowerPerformance);
         else App.Sys.SetPowerMode(SystemService.PowerBalanced);
     }
+
+    // =====================================================================
+    // Widgets tab
+    // =====================================================================
+
+    private readonly Queue<double> _cpuHist = new(), _gpuHist = new(), _ramHist = new();
+    private long _netRx, _netTx;
+    private DateTime _netAt;
+
+    private void PushStats(SystemStats s)
+    {
+        CpuText.Text = $"{s.Cpu:0}%";
+        RamText.Text = $"{s.Ram:0}%";
+        RamText.ToolTip = $"{s.RamUsedGb:0.0} of {s.RamTotalGb:0.0} GB";
+        GpuText.Text = s.Gpu is { } g ? $"{g:0}%" : "n/a";
+        var temp = _cpuTemp ?? _gpuTemp;
+        if (_mode == Mode.Expanded && TabWidgets.IsChecked == true) temp = App.Game.CpuTemp() ?? App.Game.GpuTemp() ?? temp;
+        CpuTempText.Text = temp is { } t ? $"{t:0}°" : "";
+
+        Push(_cpuHist, s.Cpu);
+        Push(_gpuHist, s.Gpu ?? 0);
+        Push(_ramHist, s.Ram);
+        if (_mode == Mode.Expanded && TabWidgets.IsChecked == true)
+        {
+            Draw(CpuSpark, _cpuHist);
+            Draw(GpuSpark, _gpuHist);
+            Draw(RamSpark, _ramHist);
+        }
+
+        // Network speed, summed over the adapters that are up.
+        try
+        {
+            long rx = 0, tx = 0;
+            foreach (var n in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (n.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                if (n.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
+                var st = n.GetIPStatistics();
+                rx += st.BytesReceived;
+                tx += st.BytesSent;
+            }
+            var now = DateTime.Now;
+            if (_netAt != default)
+            {
+                var secs = Math.Max(0.2, (now - _netAt).TotalSeconds);
+                NetText.Text = $"↓ {Rate((rx - _netRx) / secs)}   ↑ {Rate((tx - _netTx) / secs)}";
+            }
+            _netRx = rx; _netTx = tx; _netAt = now;
+        }
+        catch { }
+
+        // Battery tile
+        if (s.Battery is { } b)
+        {
+            BatteryTile.IsChecked = s.Charging;
+            BatteryState.Text = s.Charging ? "Plugged in" : "On battery";
+            BatteryTileGlyph.Text = s.Charging ? "\uE83E" : "\uE83F";
+            BatteryTile.ToolTip = $"{b}% · battery settings";
+            BatteryTileTitle(b);
+        }
+        else
+        {
+            BatteryTile.IsChecked = true;
+            BatteryState.Text = "Plugged in";
+            BatteryTileTitle(null);
+        }
+
+        static void Push(Queue<double> q, double v)
+        {
+            q.Enqueue(v);
+            while (q.Count > 30) q.Dequeue();
+        }
+
+        void Draw(System.Windows.Shapes.Polyline line, Queue<double> q)
+        {
+            var w = SparkBox.ActualWidth;
+            var h = SparkBox.ActualHeight;
+            if (w <= 0 || h <= 0) return;
+            var pts = new PointCollection();
+            var i = 0;
+            var step = w / 29.0;
+            var start = 30 - q.Count;
+            foreach (var v in q)
+            {
+                pts.Add(new Point((start + i) * step, h - 2 - (h - 4) * Math.Clamp(v, 0, 100) / 100));
+                i++;
+            }
+            line.Points = pts;
+        }
+
+        static string Rate(double bytesPerSec)
+        {
+            if (Settings.Current.NetInBits)
+            {
+                var bits = bytesPerSec * 8;
+                return bits >= 1e6 ? $"{bits / 1e6:0.0} Mb/s" : bits >= 1e3 ? $"{bits / 1e3:0} Kb/s" : $"{bits:0} b/s";
+            }
+            return bytesPerSec >= 1 << 20 ? $"{bytesPerSec / (1 << 20):0.0} MB/s"
+                 : bytesPerSec >= 1 << 10 ? $"{bytesPerSec / (1 << 10):0} KB/s"
+                 : $"{bytesPerSec:0} B/s";
+        }
+    }
+
+    /// <summary>Shows the charge in the battery tile's title, like "100%".</summary>
+    private void BatteryTileTitle(int? percent)
+    {
+        if (BatteryTile.Content is StackPanel sp && sp.Children.Count > 1 && sp.Children[1] is TextBlock title)
+            title.Text = percent is { } p ? $"{p}%" : "Power";
+    }
+
+    private DateTime _calDay;
+
+    private void UpdateCalendar(DateTime now)
+    {
+        if (_calDay == now.Date && CalDays.Children.Count > 0) return;
+        _calDay = now.Date;
+        var c = System.Globalization.CultureInfo.CurrentCulture;
+        CalDay.Text = now.Day.ToString();
+        CalDow.Text = now.ToString("ddd", c).ToUpperInvariant();
+        CalMonth.Text = now.ToString("MMM", c).ToUpperInvariant();
+        CalWeek.Text = $"Week {System.Globalization.ISOWeek.GetWeekOfYear(now)}";
+        CalDays.Children.Clear();
+        var first = c.DateTimeFormat.FirstDayOfWeek;
+        var offset = ((int)now.DayOfWeek - (int)first + 7) % 7;
+        var weekStart = now.Date.AddDays(-offset);
+        var sub = (Brush)FindResource("SubTextBrush");
+        for (var i = 0; i < 7; i++)
+        {
+            var d = weekStart.AddDays(i);
+            CalDays.Children.Add(new TextBlock
+            {
+                Text = c.DateTimeFormat.GetShortestDayName(d.DayOfWeek).Substring(0, 1),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Foreground = d.Date == now.Date ? (Brush)FindResource("AccentBrush") : sub,
+            });
+        }
+        for (var i = 0; i < 7; i++)
+        {
+            var d = weekStart.AddDays(i);
+            var today = d.Date == now.Date;
+            var cell = new Border
+            {
+                CornerRadius = new CornerRadius(6),
+                Margin = new Thickness(1, 1, 1, 0),
+                Background = today ? new SolidColorBrush(Color.FromArgb(0x33, 0x40, 0xA0, 0xFF)) : Brushes.Transparent,
+                Child = new TextBlock
+                {
+                    Text = d.Day.ToString(),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    FontWeight = today ? FontWeights.SemiBold : FontWeights.Normal,
+                },
+            };
+            CalDays.Children.Add(cell);
+        }
+    }
+
+    private void UpdateFocusWidget()
+    {
+        var f = App.Focus;
+        var idle = f.Current == FocusService.Phase.Idle;
+        FocusLeft.Text = idle ? $"{Settings.Current.FocusMinutes:00}:00" : f.Left.ToString(@"mm\:ss");
+        FocusTitle.Text = idle ? "Focus timer" : f.Current == FocusService.Phase.Break ? "Break" : "Focusing";
+        FocusLengths.Text = $"{Settings.Current.FocusMinutes} + {Settings.Current.BreakMinutes} min";
+        FocusGoGlyph.Text = idle ? "\uE768" : "\uE71A";
+        // Arc: dash lengths are in units of the stroke's thickness.
+        const double thickness = 3;
+        var circumference = Math.PI * (48 - thickness) / thickness;
+        var done = idle ? 0 : 1 - f.Progress;
+        FocusArc.StrokeDashArray = new DoubleCollection { circumference * done, circumference + 1 };
+    }
+
+    private void FocusRing_Click(object sender, MouseButtonEventArgs e) => TabFocus.IsChecked = true;
+
+    private void FocusGo_Click(object sender, RoutedEventArgs e)
+    {
+        if (App.Focus.Current == FocusService.Phase.Idle) App.Focus.Start(Settings.Current.FocusMinutes);
+        else App.Focus.Stop();
+        UpdateFocusWidget();
+    }
+
+    private void FocusLen_Click(object sender, RoutedEventArgs e)
+    {
+        var d = int.Parse((string)((Button)sender).Tag);
+        Settings.Current.FocusMinutes = Math.Clamp(Settings.Current.FocusMinutes + d, 5, 120);
+        Settings.SaveQuietly();
+        UpdateFocusWidget();
+    }
+
+    private void WidgetBell_Click(object sender, RoutedEventArgs e) => TabReminders.IsChecked = true;
 
     // =====================================================================
     // Mic mute
@@ -1763,8 +1985,6 @@ public partial class IslandWindow : Window
     {
         var muted = App.Audio.MicMuted;
         MicMutedIcon.Visibility = muted ? Visibility.Visible : Visibility.Collapsed;
-        MicTile.IsChecked = muted;
-        MicTileIcon.Text = muted ? "" : "";
     }
 
     // =====================================================================
