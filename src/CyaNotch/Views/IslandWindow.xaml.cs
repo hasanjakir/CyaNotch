@@ -1104,7 +1104,8 @@ public partial class IslandWindow : Window
             _cpuTemp ??= App.Game.CpuTemp();
         }
         PushStats(s);
-        UpdateCalendar(DateTime.Now);
+        var now = DateTime.Now;
+        UpdateCalendar(now);
         UpdateFocusWidget();
 
         // Call detection
