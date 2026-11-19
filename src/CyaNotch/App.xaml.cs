@@ -30,6 +30,7 @@ public partial class App : Application
     public static GameService Game { get; } = new();
     public static PhoneServer Phone { get; } = new();
     public static DeckService Deck { get; } = new(Phone);
+    public static FocusService Focus { get; } = new();
 
     public static new App Current => (App)Application.Current;
 

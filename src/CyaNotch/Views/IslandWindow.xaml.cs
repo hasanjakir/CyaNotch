@@ -151,8 +151,20 @@ public partial class IslandWindow : Window
         else Island.SetResourceReference(Border.BackgroundProperty, "SurfaceBrush");
     }
 
+    private const int HotkeyLauncherBase = 0xB100;
+
+    /// <summary>Ctrl+Alt+1..9 open the first nine launcher apps (works over games too).</summary>
+    private void RegisterLauncherHotkeys()
+    {
+        for (int i = 0; i < 9; i++) Native.UnregisterHotKey(_hwnd, HotkeyLauncherBase + i);
+        if (!Settings.Current.LauncherHotkeys) return;
+        for (int i = 0; i < 9; i++)
+            Native.RegisterHotKey(_hwnd, HotkeyLauncherBase + i, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, (uint)(0x31 + i));
+    }
+
     private void RegisterMicHotkey()
     {
+        RegisterLauncherHotkeys();
         Native.UnregisterHotKey(_hwnd, HotkeyMicId);
         if (!Settings.Current.MicMuteHotkey) return;
         if (!Native.RegisterHotKey(_hwnd, HotkeyMicId, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 0x4D /* M */))
@@ -169,6 +181,10 @@ public partial class IslandWindow : Window
                 break;
             case Native.WM_HOTKEY when wParam.ToInt32() == HotkeyMicId:
                 ToggleMic();
+                handled = true;
+                break;
+            case Native.WM_HOTKEY when wParam.ToInt32() is >= HotkeyLauncherBase and < HotkeyLauncherBase + 9:
+                Tabs.LauncherPage.Launch(wParam.ToInt32() - HotkeyLauncherBase);
                 handled = true;
                 break;
             case Native.WM_DISPLAYCHANGE:
@@ -209,7 +225,7 @@ public partial class IslandWindow : Window
         App.Notifications.Arrived += n => Dispatcher.BeginInvoke(() =>
         {
             App.Notifications.Add(n);
-            if (Settings.Current.ShowNotifications) ShowPeek("", n.Title, string.IsNullOrEmpty(n.Body) ? n.App : n.Body);
+            if (Settings.Current.ShowNotifications && !App.Focus.Silencing) ShowPeek("", n.Title, string.IsNullOrEmpty(n.Body) ? n.App : n.Body);
         });
         App.Audio.MicMuteChanged += () => Dispatcher.BeginInvoke(UpdateMicUi);
         App.Weather.Updated += w => Dispatcher.BeginInvoke(() => ApplyWeather(w));
@@ -921,7 +937,7 @@ public partial class IslandWindow : Window
     {
         var now = DateTime.Now;
         var timeFmt = Settings.Current.Use24Hour ? "HH:mm" : "h:mm";
-        HeaderClock.Text = now.ToString("ddd d MMM  " + timeFmt + (Settings.Current.Use24Hour ? "" : " tt"));
+        HeaderClock.Text = now.ToString(timeFmt + (Settings.Current.Use24Hour ? "" : " tt"));
 
         // Timer
         string? timerText = null;
@@ -959,6 +975,19 @@ public partial class IslandWindow : Window
             _syncingCardVolume = false;
         }
 
+        // Focus session finished
+        switch (App.Focus.Tick())
+        {
+            case FocusService.Phase.Focus:
+                ShowPeek("\uE916", "Focus session done", $"Take a {Settings.Current.BreakMinutes}-minute break");
+                System.Media.SystemSounds.Asterisk.Play();
+                break;
+            case FocusService.Phase.Break:
+                ShowPeek("\uE916", "Break's over", "Ready for another session?");
+                System.Media.SystemSounds.Asterisk.Play();
+                break;
+        }
+
         // Call timer
         if (_callStart is { } cs) CallTime.Text = Fmt(now - cs);
 
@@ -981,6 +1010,8 @@ public partial class IslandWindow : Window
             CompactText.Text = ShortTitle(m.Title, m.Artist);
         else if (timerText != null)
             CompactText.Text = timerText;
+        else if (App.Focus.Current != FocusService.Phase.Idle)
+            CompactText.Text = (App.Focus.Current == FocusService.Phase.Break ? "Break " : "Focus ") + App.Focus.Left.ToString(@"mm\:ss");
         else
             CompactText.Text = RestingText(now, timeFmt);
 
@@ -1116,8 +1147,12 @@ public partial class IslandWindow : Window
         if (PageHome == null) return; // during InitializeComponent
         PageHome.Visibility = TabHome.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageWidgets.Visibility = TabWidgets.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageWeb.Visibility = TabWeb.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageLauncher.Visibility = TabLauncher.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageFocus.Visibility = TabFocus.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageCalls.Visibility = TabCalls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (_mode == Mode.Expanded) AnimateTo(ExpandedSize(), bouncy: false);
-        foreach (var t in new[] { TabHome, TabWidgets, TabClip, TabShelf, TabControls, TabNotes, TabReminders })
+        foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabLauncher, TabFocus, TabCalls, TabReminders })
             if (t.IsChecked == true) { Settings.Current.LastTab = t.Name; break; }
         PageClip.Visibility = TabClip.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageShelf.Visibility = TabShelf.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
