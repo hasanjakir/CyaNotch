@@ -49,6 +49,9 @@ public partial class SettingsWindow : Window
         IslandWidth.Value = s.CollapsedWidth;
         Speed.Value = s.AnimationSpeed;
         StartWithWindows.IsChecked = s.StartWithWindows;
+        AutoHide.IsChecked = s.AutoHide;
+        ShowPlaying.IsChecked = s.ShowWhilePlaying;
+        Glance.IsChecked = s.StatsGlance;
         FsStrip.IsChecked = s.FullscreenMode == GameMode.Strip;
         FsHide.IsChecked = s.FullscreenMode == GameMode.Hide;
         FsOff.IsChecked = s.FullscreenMode == GameMode.Off;
@@ -180,6 +183,9 @@ public partial class SettingsWindow : Window
         s.LyricsEnabled = LyricsOn.IsChecked == true;
         s.LyricsInPill = LyricsPill.IsChecked == true;
         s.MicMuteHotkey = MicHotkey.IsChecked == true;
+        s.AutoHide = AutoHide.IsChecked == true;
+        s.ShowWhilePlaying = ShowPlaying.IsChecked == true;
+        s.StatsGlance = Glance.IsChecked == true;
         s.ShowNotifications = ShowNotes.IsChecked == true;
         s.Use24Hour = Clock24.IsChecked == true;
         s.UseFahrenheit = Fahrenheit.IsChecked == true;

@@ -223,6 +223,119 @@ internal static class Native
 
     public static readonly IntPtr HWND_BOTTOM = new(1);
 
+    [DllImport("user32.dll")]
+    public static extern bool GetCursorPos(out POINT pt);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT { public int X, Y; }
+
+    [DllImport("user32.dll")]
+    public static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateRoundRectRgn(int x1, int y1, int x2, int y2, int w, int h);
+
+    [DllImport("gdi32.dll")]
+    public static extern IntPtr CreateRectRgn(int x1, int y1, int x2, int y2);
+
+    [DllImport("gdi32.dll")]
+    public static extern int CombineRgn(IntPtr dest, IntPtr src1, IntPtr src2, int mode);
+
+    [DllImport("gdi32.dll")]
+    public static extern bool DeleteObject(IntPtr obj);
+
+    public const int RGN_OR = 2;
+
+    /// <summary>Rounded-rectangle window region; for the notch shape the top corners stay square.</summary>
+    public static void SetRoundedRegion(IntPtr hwnd, int w, int h, int radius, bool squareTop)
+    {
+        if (w <= 0 || h <= 0)
+        {
+            SetWindowRgn(hwnd, CreateRectRgn(0, 0, 0, 0), true);
+            return;
+        }
+        var d = Math.Max(0, radius * 2);
+        var rgn = CreateRoundRectRgn(0, 0, w + 1, h + 1, d, d);
+        if (squareTop)
+        {
+            var top = CreateRectRgn(0, 0, w + 1, Math.Min(h, radius + 1));
+            CombineRgn(rgn, rgn, top, RGN_OR);
+            DeleteObject(top);
+        }
+        SetWindowRgn(hwnd, rgn, true); // the system owns rgn now
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MARGINS { public int Left, Right, Top, Bottom; }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS margins);
+
+    /// <summary>
+    /// Gives a borderless window per-pixel alpha through DWM, and on Windows 11 turns off the system's
+    /// own rounded corners and border so our shape is the only one.
+    /// </summary>
+    public static void PrepareGlassWindow(IntPtr hwnd)
+    {
+        try
+        {
+            var m = new MARGINS { Left = -1, Right = -1, Top = -1, Bottom = -1 };
+            DwmExtendFrameIntoClientArea(hwnd, ref m);
+            int noRound = 1; // DWMWCP_DONOTROUND
+            DwmSetWindowAttribute(hwnd, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, ref noRound, sizeof(int));
+            int noBorder = unchecked((int)0xFFFFFFFE); // DWMWA_COLOR_NONE
+            DwmSetWindowAttribute(hwnd, 34 /* DWMWA_BORDER_COLOR */, ref noBorder, sizeof(int));
+        }
+        catch
+        {
+            // Older Windows: attributes are simply ignored.
+        }
+    }
+
+    // ---- Blur behind (Windows 10/11 "accent" API) ----
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct AccentPolicy
+    {
+        public int AccentState;
+        public int AccentFlags;
+        public uint GradientColor;
+        public int AnimationId;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowCompositionAttributeData
+    {
+        public int Attribute;
+        public IntPtr Data;
+        public int SizeOfData;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+
+    /// <summary>Turns the frosted-glass blur behind the window on or off.</summary>
+    public static void SetBlur(IntPtr hwnd, bool on)
+    {
+        var accent = new AccentPolicy { AccentState = on ? 3 /* ACCENT_ENABLE_BLURBEHIND */ : 0 };
+        var size = Marshal.SizeOf(accent);
+        var ptr = Marshal.AllocHGlobal(size);
+        try
+        {
+            Marshal.StructureToPtr(accent, ptr, false);
+            var data = new WindowCompositionAttributeData { Attribute = 19 /* WCA_ACCENT_POLICY */, Data = ptr, SizeOfData = size };
+            SetWindowCompositionAttribute(hwnd, ref data);
+        }
+        catch
+        {
+            // Not available on this Windows build; the island stays solid.
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
+    }
+
     /// <summary>True when the foreground window covers its whole monitor (game, video, slideshow).</summary>
     public static bool IsForegroundFullscreen(IntPtr self)
     {

@@ -23,7 +23,7 @@ namespace CyaNotch.Views;
 
 public partial class IslandWindow : Window
 {
-    private enum Mode { Compact, Peek, Expanded, Strip }
+    private enum Mode { Compact, Peek, Expanded, Strip, Hidden, Glance }
 
     private const int HotkeyMicId = 0xB001;
 
@@ -59,10 +59,22 @@ public partial class IslandWindow : Window
     // Clipboard filter
     private string _clipFilter = "All";
 
+    private bool _lastMusic;
+
     // Lyrics
     private Lyrics? _lyrics;
     private string _lyricsKey = "";
     private string? _currentLyric;
+
+    // Auto-hide, glance and window sync
+    private readonly DispatcherTimer _hover = new() { Interval = TimeSpan.FromMilliseconds(40) };
+    private readonly DispatcherTimer _glanceTimer = new();
+    private readonly DispatcherTimer _glanceEnd = new() { Interval = TimeSpan.FromSeconds(6) };
+    private DateTime _outsideSince = DateTime.MaxValue;
+    private DateTime _audioSince = DateTime.MaxValue;
+    private int _lastW, _lastH, _lastX, _lastY, _lastR = -1;
+    private bool _lastSquare;
+    private static readonly Random Rng = new();
 
     // Game strip
     private SystemStats? _lastStats;
@@ -89,6 +101,10 @@ public partial class IslandWindow : Window
         _fast.Tick += (_, _) => FastTick();
         _slow.Tick += (_, _) => SlowTick();
         _weatherTimer.Tick += async (_, _) => await App.Weather.RefreshAsync();
+        _hover.Tick += (_, _) => AutoHideTick();
+        _glanceTimer.Tick += (_, _) => { _glanceTimer.Stop(); StartGlance(); ScheduleGlance(); };
+        _glanceEnd.Tick += (_, _) => { _glanceEnd.Stop(); EndGlance(); };
+        CompositionTarget.Rendering += (_, _) => SyncWindowToIsland();
 
         Settings.Changed += OnSettingsChanged;
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(PositionWindow);
@@ -109,6 +125,10 @@ public partial class IslandWindow : Window
         Native.SetWindowLong(_hwnd, Native.GWL_EXSTYLE, (ex | Native.WS_EX_TOOLWINDOW) & ~Native.WS_EX_APPWINDOW);
 
         Native.AddClipboardFormatListener(_hwnd);
+        // Per-pixel transparency on a normal (non-layered) window, so the window region and blur work together.
+        if (_source?.CompositionTarget != null) _source.CompositionTarget.BackgroundColor = Colors.Transparent;
+        Native.PrepareGlassWindow(_hwnd);
+        Native.SetBlur(_hwnd, Themes.Current.Glossy);
         RegisterMicHotkey();
     }
 
@@ -183,6 +203,10 @@ public partial class IslandWindow : Window
 
         _fast.Start();
         _slow.Start();
+        _hover.Start();
+        App.Visualizer.Start(48); // always listening (cheap) so music without a media session still counts
+        ScheduleGlance();
+        if (Settings.Current.AutoHide) { _mode = Mode.Hidden; Compact.Opacity = 0; Compact.Visibility = Visibility.Collapsed; AnimateTo(HiddenSize(), animate: false); }
         _weatherTimer.Start();
         FastTick();
         SlowTick();
@@ -194,15 +218,43 @@ public partial class IslandWindow : Window
         await App.Weather.RefreshAsync();
     }
 
-    /// <summary>Top centre of the primary screen.</summary>
+    /// <summary>Screen layout changed: force the window to re-sync on the next frame.</summary>
     private void PositionWindow()
     {
-        var area = SystemParameters.WorkArea;
-        var screenW = SystemParameters.PrimaryScreenWidth;
-        Left = (screenW - Width) / 2;
-        Top = 0;
-        // If the taskbar is docked at the top, sit just below it.
-        if (area.Top > 0) Top = area.Top;
+        _lastW = _lastH = -1;
+        SyncWindowToIsland();
+    }
+
+    /// <summary>
+    /// The window is exactly the island's size, centred at the top of the primary screen, and clipped
+    /// to its rounded shape. That way the glass blur only shows inside the island. Runs every frame but
+    /// only touches the window when something changed.
+    /// </summary>
+    private void SyncWindowToIsland()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        var src = PresentationSource.FromVisual(this);
+        var scale = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+
+        double wDip = double.IsNaN(Island.Width) ? 0 : Island.Width;
+        double hDip = double.IsNaN(Island.Height) ? 0 : Island.Height;
+        if (Island.Visibility != Visibility.Visible) hDip = 0;
+
+        var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        var work = System.Windows.Forms.Screen.PrimaryScreen!.WorkingArea;
+        int w = (int)Math.Ceiling(wDip * scale);
+        int h = (int)Math.Ceiling(hDip * scale);
+        int top = work.Top > screen.Top ? work.Top : screen.Top; // below a top-docked taskbar
+        if (!IsNotch) top += (int)Math.Round(Settings.Current.DistanceFromTop * scale);
+        int x = screen.Left + (screen.Width - w) / 2;
+        int r = (int)Math.Round(Island.CornerRadius.BottomLeft * scale);
+        var square = IsNotch;
+
+        if (w == _lastW && h == _lastH && x == _lastX && top == _lastY && r == _lastR && square == _lastSquare) return;
+        _lastW = w; _lastH = h; _lastX = x; _lastY = top; _lastR = r; _lastSquare = square;
+
+        Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, x, top, Math.Max(1, w), Math.Max(1, h), Native.SWP_NOACTIVATE);
+        Native.SetRoundedRegion(_hwnd, h < 2 ? 0 : w, h < 2 ? 0 : h, r, square);
     }
 
     public void ToggleHidden()
@@ -234,7 +286,9 @@ public partial class IslandWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             Themes.Apply(Settings.Current.Theme);
+            Native.SetBlur(_hwnd, Themes.Current.Glossy);
             RegisterMicHotkey();
+            ScheduleGlance();
             ApplyShape(animate: true);
             UpdateCompactLayout();
             _lyricsKey = "";
@@ -257,7 +311,7 @@ public partial class IslandWindow : Window
         var w = Settings.Current.CollapsedWidth;
         var h = Settings.Current.CollapsedHeight;
         var m = App.Media.State;
-        if (m.HasSession && m.IsPlaying) w += Settings.Current.VisualizerStyle == VisualizerStyle.Off ? 70 : 130;
+        if (MusicPlaying) w += Settings.Current.VisualizerStyle == VisualizerStyle.Off ? 70 : 130;
         if (_callStart != null) w += 40;
         if (_timerEnd != null) w += 30;
         return new Size(w, h);
@@ -266,16 +320,20 @@ public partial class IslandWindow : Window
     private static Size PeekSize() => new(400, 64);
     private static Size ExpandedSize() => new(700, 430);
     private static Size StripSize() => new(380, 24);
+    private static Size GlanceSize() => new(470, 34);
+    private Size HiddenSize() => new(Settings.Current.CollapsedWidth * 0.6, 0);
 
     private void ApplyShape(bool animate)
     {
-        Island.Margin = new Thickness(0, IsNotch ? 0 : Settings.Current.DistanceFromTop, 0, 0);
+        Island.Margin = new Thickness(0);
         Island.BorderThickness = IsNotch ? new Thickness(1, 0, 1, 1) : new Thickness(1);
         var size = _mode switch
         {
             Mode.Expanded => ExpandedSize(),
             Mode.Peek => PeekSize(),
             Mode.Strip => StripSize(),
+            Mode.Glance => GlanceSize(),
+            Mode.Hidden => HiddenSize(),
             _ => CompactSize(),
         };
         AnimateTo(size, animate);
@@ -341,6 +399,12 @@ public partial class IslandWindow : Window
         if (fg != _hwnd) _prevForeground = fg;
 
         _peekTimer.Stop();
+        if (_mode == Mode.Glance)
+        {
+            _glanceEnd.Stop();
+            StripTime.Visibility = Visibility.Collapsed;
+            Strip.Visibility = Visibility.Collapsed;
+        }
         if (_mode == Mode.Strip)
         {
             App.Game.StopTracking();
@@ -371,7 +435,7 @@ public partial class IslandWindow : Window
     private void ShowPeek(string icon, string title, string body)
     {
         _peeks.Enqueue((icon, title, body));
-        if (_mode == Mode.Compact) NextPeek();
+        if (_mode is Mode.Compact or Mode.Hidden) NextPeek();
     }
 
     private void NextPeek()
@@ -477,6 +541,126 @@ public partial class IslandWindow : Window
     }
 
     // =====================================================================
+    // Auto-hide: hidden until the mouse touches the top edge
+    // =====================================================================
+
+    /// <summary>Music is audible: the media session says playing, or sound has been coming out for a moment.</summary>
+    private bool MusicPlaying
+    {
+        get
+        {
+            var m = App.Media.State;
+            if (m.HasSession && m.IsPlaying) return true;
+            if (App.Visualizer.HasSound)
+            {
+                if (_audioSince == DateTime.MaxValue) _audioSince = DateTime.Now;
+                return (DateTime.Now - _audioSince).TotalSeconds > 1.5;
+            }
+            _audioSince = DateTime.MaxValue;
+            return false;
+        }
+    }
+
+    private bool StickyVisible => Settings.Current.ShowWhilePlaying && MusicPlaying;
+
+    private void AutoHideTick()
+    {
+        if (!Settings.Current.AutoHide)
+        {
+            if (_mode == Mode.Hidden) Reveal();
+            return;
+        }
+        if (_mode is not (Mode.Compact or Mode.Hidden)) { _outsideSince = DateTime.MaxValue; return; }
+
+        Native.GetCursorPos(out var pt);
+        var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        var scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+        var half = Math.Max(160, CompactSize().Width / 2 + 60) * scale;
+        var cx = screen.Left + screen.Width / 2.0;
+        var hot = pt.Y <= screen.Top + 3 && Math.Abs(pt.X - cx) <= half;
+        var near = pt.Y <= screen.Top + (Settings.Current.CollapsedHeight + 24 + (IsNotch ? 0 : Settings.Current.DistanceFromTop)) * scale
+                   && Math.Abs(pt.X - cx) <= half;
+
+        if (_mode == Mode.Hidden)
+        {
+            if (hot || StickyVisible) Reveal();
+            return;
+        }
+
+        // Compact: stay while the mouse is on or near the pill, or music keeps it out.
+        if (near || Island.IsMouseOver || StickyVisible)
+        {
+            _outsideSince = DateTime.MaxValue;
+            return;
+        }
+        if (_outsideSince == DateTime.MaxValue) _outsideSince = DateTime.Now;
+        if ((DateTime.Now - _outsideSince).TotalMilliseconds > 450) HideIsland();
+    }
+
+    private void HideIsland()
+    {
+        if (_mode != Mode.Compact) return;
+        _mode = Mode.Hidden;
+        _outsideSince = DateTime.MaxValue;
+        Fade(Compact, false, 90 * Speed);
+        AnimateTo(HiddenSize(), bouncy: false);
+        UpdateCompactLayout();
+    }
+
+    private void Reveal()
+    {
+        if (_mode != Mode.Hidden) return;
+        _mode = Mode.Compact;
+        Fade(Compact, true, 200 * Speed, 120 * Speed);
+        AnimateTo(CompactSize());
+        UpdateCompactLayout();
+        if (_peeks.Count > 0) NextPeek();
+    }
+
+    // =====================================================================
+    // Stats glance: pops up now and then with time, CPU, GPU, RAM, temperature
+    // =====================================================================
+
+    private void ScheduleGlance()
+    {
+        _glanceTimer.Stop();
+        if (!Settings.Current.StatsGlance) return;
+        var lo = Math.Max(1, Settings.Current.GlanceMinMinutes);
+        var hi = Math.Max(lo, Settings.Current.GlanceMaxMinutes);
+        _glanceTimer.Interval = TimeSpan.FromSeconds(Rng.Next(lo * 60, hi * 60 + 1));
+        _glanceTimer.Start();
+    }
+
+    private void StartGlance()
+    {
+        if (_mode is not (Mode.Compact or Mode.Hidden) || _hiddenByUser || _hiddenForFullscreen) return;
+        _mode = Mode.Glance;
+        _gpuTemp = App.Game.GpuTemp();
+        _cpuTemp = App.Game.CpuTemp();
+        _lastStats ??= App.Sys.Sample();
+        StripTime.Visibility = Visibility.Visible;
+        UpdateStrip();
+        Fade(Compact, false, 80 * Speed);
+        Fade(Strip, true, 180 * Speed, 120 * Speed);
+        AnimateTo(GlanceSize());
+        UpdateCompactLayout();
+        _glanceEnd.Start();
+    }
+
+    private void EndGlance()
+    {
+        if (_mode != Mode.Glance) return;
+        _mode = Mode.Compact;
+        StripTime.Visibility = Visibility.Collapsed;
+        Fade(Strip, false, 80 * Speed);
+        Fade(Compact, true, 180 * Speed, 100 * Speed);
+        AnimateTo(CompactSize(), bouncy: false);
+        UpdateCompactLayout();
+        _outsideSince = DateTime.MinValue; // let auto-hide tuck it away right after
+        if (_peeks.Count > 0) NextPeek();
+    }
+
+    // =====================================================================
     // Game strip
     // =====================================================================
 
@@ -505,6 +689,7 @@ public partial class IslandWindow : Window
 
     private void UpdateStrip()
     {
+        StripTime.Text = DateTime.Now.ToString(Settings.Current.Use24Hour ? "HH:mm" : "h:mm tt");
         var fps = App.Game.SampleFps();
         StripFps.Text = fps is { } f ? $"{f:0} FPS" : "";
         StripFps.Visibility = fps == null ? Visibility.Collapsed : Visibility.Visible;
@@ -676,7 +861,16 @@ public partial class IslandWindow : Window
         // Call timer
         if (_callStart is { } cs) CallTime.Text = Fmt(now - cs);
 
-        if (_mode == Mode.Strip) UpdateStrip();
+        if (_mode is Mode.Strip or Mode.Glance) UpdateStrip();
+
+        // Music started or stopped without a media-session event (players that don't report to Windows).
+        var music = MusicPlaying;
+        if (music != _lastMusic)
+        {
+            _lastMusic = music;
+            UpdateCompactLayout();
+            AnimateIfCompact();
+        }
         if (_lyrics != null) UpdateLyrics(m);
 
         // Compact text: song > timer > clock
@@ -734,14 +928,15 @@ public partial class IslandWindow : Window
         var fsMode = Settings.Current.FullscreenMode;
         var wantStrip = fs && fsMode == GameMode.Strip;
         var wantHide = fs && fsMode == GameMode.Hide;
-        if (wantStrip && _mode == Mode.Compact) EnterStrip();
+        if (wantStrip && _mode is Mode.Compact or Mode.Hidden) EnterStrip();
         else if (!wantStrip && _mode == Mode.Strip) ExitStrip();
         if (wantHide != _hiddenForFullscreen)
         {
             _hiddenForFullscreen = wantHide;
             UpdateVisibility();
         }
-        if (_mode == Mode.Strip)
+        if (!App.Visualizer.Running) App.Visualizer.Start(App.Visualizer.Bands);
+        if (_mode is Mode.Strip or Mode.Glance)
         {
             _gpuTemp = App.Game.GpuTemp();
             _cpuTemp = App.Game.CpuTemp();
@@ -817,18 +1012,17 @@ public partial class IslandWindow : Window
     private void UpdateCompactLayout()
     {
         var m = App.Media.State;
-        var playing = m.HasSession && m.IsPlaying;
+        var playing = MusicPlaying;
         var style = Settings.Current.VisualizerStyle;
         var showViz = playing && style != VisualizerStyle.Off;
         var vizOnly = showViz && style == VisualizerStyle.Bars;
 
         Viz.Mirrored = Settings.Current.VisualizerMirrored;
         Viz.Visibility = showViz ? Visibility.Visible : Visibility.Collapsed;
-        Viz.Opacity = style == VisualizerStyle.BarsWithTitle ? 0.45 : 1.0;
+        Viz.Opacity = style == VisualizerStyle.BarsWithTitle ? 0.6 : 1.0;
         Viz.Active = showViz && _mode == Mode.Compact && Island.Visibility == Visibility.Visible;
-        if (!Viz.Active && App.Visualizer.Running) App.Visualizer.Stop();
 
-        var art = playing && m.Artwork != null && !vizOnly;
+        var art = playing && m.HasSession && m.Artwork != null && !vizOnly;
         CompactArtBox.Visibility = art ? Visibility.Visible : Visibility.Collapsed;
         CompactIcon.Visibility = art || vizOnly ? Visibility.Collapsed : Visibility.Visible;
         CompactText.Visibility = vizOnly ? Visibility.Hidden : Visibility.Visible;

@@ -84,8 +84,29 @@ public sealed class ClipboardService
 
     public void Save() => Storage.Save(FileName, Items.ToList());
 
-    /// <summary>Called on WM_CLIPBOARDUPDATE (UI thread).</summary>
+    /// <summary>Called on WM_CLIPBOARDUPDATE (UI thread). Retries briefly if another app has the clipboard open.</summary>
     public void Capture()
+    {
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            try
+            {
+                CaptureOnce();
+                return;
+            }
+            catch (System.Runtime.InteropServices.COMException) when (attempt < 3)
+            {
+                System.Threading.Thread.Sleep(40);
+            }
+            catch (System.Runtime.InteropServices.ExternalException ex)
+            {
+                Log.Error("Clipboard busy, skipped one copy", ex);
+                return;
+            }
+        }
+    }
+
+    private void CaptureOnce()
     {
         if (_suppressNext)
         {
@@ -151,9 +172,12 @@ public sealed class ClipboardService
             Items.Insert(0, item);
             Trim();
         }
+        catch (System.Runtime.InteropServices.ExternalException)
+        {
+            throw; // clipboard locked by another app: Capture() retries
+        }
         catch (Exception ex)
         {
-            // The clipboard is often locked by another app for a moment; just skip.
             Log.Error("Clipboard capture failed", ex);
         }
     }

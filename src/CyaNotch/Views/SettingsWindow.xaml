@@ -97,6 +97,9 @@
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <CheckBox x:Name="StartWithWindows" Content="Start CyaNotch when I sign in to Windows" Click="Changed"/>
+                    <CheckBox x:Name="AutoHide" Content="Hide the island until I move the mouse to the top of the screen" Click="Changed"/>
+                    <CheckBox x:Name="ShowPlaying" Content="Keep it showing while music plays (for the visualizer)" Margin="22,5,0,5" Click="Changed"/>
+                    <CheckBox x:Name="Glance" Content="Pop up time, CPU, GPU, RAM and temperature every few minutes" Click="Changed"/>
                     <TextBlock Text="Over fullscreen games and videos" Margin="0,4,0,6"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                         <RadioButton x:Name="FsStrip" Content="Slim stats strip" GroupName="Fs" Checked="Changed"/>
