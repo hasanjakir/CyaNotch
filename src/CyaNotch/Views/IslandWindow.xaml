@@ -307,6 +307,23 @@
                     <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
                         <TextBlock x:Name="PeekTitle" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                         <TextBlock x:Name="PeekBody" Style="{StaticResource Sub}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                        <!-- a device just connected: every connected device with its battery -->
+                        <ItemsControl x:Name="PeekDevices" Visibility="Collapsed" Margin="0,5,0,0" Focusable="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#16FFFFFF" CornerRadius="9" Padding="7,3" Margin="0,0,5,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" FontSize="11" Text="{Binding Glyph}" Margin="0,0,5,0"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="11" MaxWidth="96" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding BatteryText}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding BatteryBrush}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                     <TextBlock x:Name="PeekCount" Grid.Column="1" Style="{StaticResource Sub}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Top"
                                Visibility="Collapsed" ToolTip="Scroll to flip through"/>
@@ -330,6 +347,7 @@
                         <RadioButton x:Name="TabClip" Style="{StaticResource TabButton}" Content="&#xE77F;" ToolTip="Clipboard" Checked="Tab_Checked"/>
                         <RadioButton x:Name="TabWidgets" Style="{StaticResource TabButton}" Content="&#xF0E2;" ToolTip="Widgets" Checked="Tab_Checked"/>
                         <RadioButton x:Name="TabControls" Style="{StaticResource TabButton}" Content="&#xE9E9;" ToolTip="Controls" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabDevices" Style="{StaticResource TabButton}" Content="&#xE702;" ToolTip="Bluetooth devices" Checked="Tab_Checked"/>
                         <RadioButton x:Name="TabLauncher" Style="{StaticResource TabButton}" Content="&#xE712;" ToolTip="Launcher" Checked="Tab_Checked"/>
                         <Button x:Name="HeaderPhone" Style="{StaticResource HeaderIcon}" Content="&#xE8EA;" ToolTip="Phone remote" Click="HeaderPhone_Click"/>
                         <RadioButton x:Name="TabCalls" Style="{StaticResource TabButton}" Content="&#xE7F6;" ToolTip="Calls" Checked="Tab_Checked"/>
@@ -672,6 +690,48 @@
                         </Grid>
 
                         <!-- ===== CONTROLS ===== -->
+                        <!-- Bluetooth devices and their batteries -->
+                        <DockPanel x:Name="PageDevices" Visibility="Collapsed" Margin="4,2,4,0">
+                            <Grid DockPanel.Dock="Top" Margin="2,0,2,6">
+                                <TextBlock Text="Bluetooth devices" FontSize="13" FontWeight="SemiBold"/>
+                                <Button Style="{StaticResource HeaderIcon}" Content="&#xE713;" HorizontalAlignment="Right" ToolTip="Bluetooth settings" Click="BtSettings_Click"/>
+                            </Grid>
+                            <Grid>
+                                <TextBlock x:Name="DevicesEmpty" Style="{StaticResource Sub}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Text="No Bluetooth devices connected"/>
+                                <ItemsControl x:Name="DevicesList" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#12FFFFFF" CornerRadius="12" Padding="10,7" Margin="0,0,0,5">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="30"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="70"/>
+                                                        <ColumnDefinition Width="42"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Style="{StaticResource Icon}" FontSize="15" Text="{Binding Glyph}" HorizontalAlignment="Left"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                                    <Grid Grid.Column="2" Height="6" VerticalAlignment="Center" Margin="8,0">
+                                                        <Border CornerRadius="3" Background="#22FFFFFF"/>
+                                                        <Border CornerRadius="3" Background="{Binding BatteryBrush}" HorizontalAlignment="Left">
+                                                            <Border.Width>
+                                                                <MultiBinding Converter="{x:Static local:FractionWidth.Instance}">
+                                                                    <Binding Path="BatteryFraction"/>
+                                                                    <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Grid}"/>
+                                                                </MultiBinding>
+                                                            </Border.Width>
+                                                        </Border>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="3" Text="{Binding BatteryText}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </DockPanel>
+
                         <Grid x:Name="PageControls" Visibility="Collapsed">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>

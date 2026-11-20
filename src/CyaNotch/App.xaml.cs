@@ -34,6 +34,7 @@ public partial class App : Application
     public static ObsService Obs { get; } = new();
     public static CaptureService Capture { get; } = new();
     public static AgentService Agents { get; } = new();
+    public static BluetoothBatteryService Bluetooth { get; } = new();
 
     public static new App Current => (App)Application.Current;
 
@@ -69,6 +70,7 @@ public partial class App : Application
         WidgetWindow.RestoreAll();
         Obs.Start();
         Agents.Start();
+        Bluetooth.Start();
         // Also gives Windows' taskbar back if a previous run hid it and then crashed.
         TaskbarWindow.Apply();
         Settings.Changed += () => Dispatcher.BeginInvoke(new Action(TaskbarWindow.Apply));
