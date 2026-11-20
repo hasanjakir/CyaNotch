@@ -3,16 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="104"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- big mic button -->
+        <!-- mic button -->
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-            <Button x:Name="MicBtn" Width="132" Height="132" Cursor="Hand" Focusable="False" Click="Mic_Click" ToolTip="Mute or unmute your mic in every app (Ctrl+Alt+M)">
+            <Button x:Name="MicBtn" Width="64" Height="64" Cursor="Hand" Focusable="False" Click="Mic_Click" ToolTip="Mute or unmute your mic in every app (Ctrl+Alt+M)">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Bd" CornerRadius="66" Background="{TemplateBinding Background}">
+                        <Border x:Name="Bd" CornerRadius="32" Background="{TemplateBinding Background}" BorderBrush="#4D3DDC84" BorderThickness="1.5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -22,30 +22,58 @@
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Button.Template>
-                <TextBlock x:Name="MicGlyph" Style="{StaticResource Icon}" FontSize="46" Text="&#xE720;"/>
+                <TextBlock x:Name="MicGlyph" Style="{StaticResource Icon}" FontSize="22" Text="&#xE720;"/>
             </Button>
-            <TextBlock x:Name="MicState" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,0"/>
-            <TextBlock x:Name="InUse" Style="{StaticResource Sub}" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+            <TextBlock x:Name="MicState" FontSize="11.5" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,7,0,0" Foreground="{DynamicResource SubTextBrush}"/>
+            <TextBlock x:Name="InUse" Style="{StaticResource Sub}" FontSize="11" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
         </StackPanel>
 
-        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,6,0">
-            <TextBlock Text="Microphone" FontWeight="SemiBold"/>
-            <TextBlock x:Name="MicName" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis" Margin="0,2,0,8"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Border Height="10" CornerRadius="5" Background="{DynamicResource TrackBrush}" VerticalAlignment="Center">
-                    <Border x:Name="Level" HorizontalAlignment="Left" Width="0" CornerRadius="5" Background="{DynamicResource AccentBrush}"/>
-                </Border>
-                <Button x:Name="MicTestBtn" Grid.Column="1" Style="{StaticResource PillButton}" Content="Test mic" Margin="10,0,0,0" Click="MicTest_Click"/>
-            </Grid>
-            <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="Speak: the bar should move. It stops on its own after 15 seconds."/>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0,4,0">
+            <TextBlock Text="Ready for calls" FontSize="14" FontWeight="SemiBold"/>
+            <TextBlock Style="{StaticResource Sub}" FontSize="11.5" Text="Test your mic and speaker before you join." TextTrimming="CharacterEllipsis" Margin="0,1,0,8"/>
 
-            <TextBlock Text="Speaker" FontWeight="SemiBold" Margin="0,18,0,0"/>
-            <TextBlock x:Name="SpeakerName" Style="{StaticResource Sub}" TextTrimming="CharacterEllipsis" Margin="0,2,0,8"/>
-            <Button Style="{StaticResource PillButton}" HorizontalAlignment="Left" Content="Play a test sound" Click="SpeakerTest_Click"/>
+            <!-- speaker -->
+            <Border CornerRadius="10" Background="#16FFFFFF" Margin="0,0,0,5">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" Margin="9,6" Cursor="Hand" MouseLeftButtonUp="SoundSettings_Click" ToolTip="Change in Sound settings">
+                        <TextBlock Style="{StaticResource Icon}" FontSize="12" Text="&#xE7F6;" Margin="0,0,7,0"/>
+                        <TextBlock x:Name="SpeakerName" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource PillButton}" Padding="10,3" Margin="0,0,4,0" Content="Test" Click="SpeakerTest_Click"/>
+                </Grid>
+            </Border>
+
+            <!-- mic, with its level filling the row -->
+            <Border CornerRadius="10" Background="#16FFFFFF" ClipToBounds="True" Margin="0,0,0,7">
+                <Grid>
+                    <Grid x:Name="LevelTrack">
+                        <Border x:Name="Level" HorizontalAlignment="Left" Width="0" Background="#333DDC84"/>
+                        <Border Width="3" HorizontalAlignment="Left" Background="#3DDC84"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Margin="9,6" Cursor="Hand" MouseLeftButtonUp="SoundSettings_Click" ToolTip="Change in Sound settings">
+                            <TextBlock Style="{StaticResource Icon}" FontSize="12" Text="&#xE720;" Margin="0,0,7,0"/>
+                            <TextBlock x:Name="MicName" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                        </StackPanel>
+                        <Button x:Name="MicTestBtn" Grid.Column="1" Style="{StaticResource PillButton}" Padding="10,3" Margin="0,0,4,0" Content="Test" Click="MicTest_Click"/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Button Style="{StaticResource PillButton}" HorizontalAlignment="Left" Padding="10,4" Click="CheckCamera_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Icon}" FontSize="12" Text="&#xE722;" Margin="0,0,6,0"/>
+                    <TextBlock Text="Check camera" FontSize="12"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
     </Grid>
 </UserControl>

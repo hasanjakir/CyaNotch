@@ -130,8 +130,9 @@ public sealed class MediaService
             var current = _manager.GetCurrentSession();
             return playing ?? (current != null && Allowed(current) ? current : null) ?? sessions.FirstOrDefault();
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Info("Artwork could not be read: " + ex.Message);
             return null;
         }
     }
@@ -156,10 +157,15 @@ public sealed class MediaService
             var timeline = s.GetTimelineProperties();
 
             var key = $"{props?.Title}|{props?.Artist}|{s.SourceAppUserModelId}";
-            if (key != _artKey)
+            // Browsers often send the title first and the artwork a moment later, so keep trying
+            // while a song has no artwork yet, not just when the song changes.
+            if (key != _artKey || (_art == null && props?.Thumbnail != null))
             {
                 _artKey = key;
                 _art = await LoadArtAsync(props?.Thumbnail);
+                if (_art == null && props?.Thumbnail != null) _artRetries++;
+                else _artRetries = 0;
+                if (_art == null && _artRetries is > 0 and < 4) _ = RetryArtSoon();
             }
 
             Publish(new MediaInfo
@@ -180,6 +186,14 @@ public sealed class MediaService
         {
             Log.Error("Media refresh failed", ex);
         }
+    }
+
+    private int _artRetries;
+
+    private async Task RetryArtSoon()
+    {
+        await Task.Delay(700);
+        await RefreshAsync();
     }
 
     private void Publish(MediaInfo state)

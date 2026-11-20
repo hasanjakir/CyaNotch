@@ -62,6 +62,65 @@ public sealed class ClipItem
     }
 
     [JsonIgnore] public string When => Time.Date == DateTime.Today ? Time.ToString("t") : Time.ToString("MMM d");
+
+    [JsonIgnore] public bool IsText => Kind != ClipKind.Image;
+
+    [JsonIgnore] public string KindLabel => Kind switch { ClipKind.Link => "Link", ClipKind.Image => "Image", ClipKind.Files => "File", _ => "Text" };
+
+    /// <summary>Short age for the card header: now, 5m, 2h, 3d.</summary>
+    [JsonIgnore]
+    public string Age
+    {
+        get
+        {
+            var a = DateTime.Now - Time;
+            if (a.TotalMinutes < 1) return "now";
+            if (a.TotalHours < 1) return $"{(int)a.TotalMinutes}m";
+            if (a.TotalDays < 1) return $"{(int)a.TotalHours}h";
+            return $"{(int)a.TotalDays}d";
+        }
+    }
+
+    /// <summary>Line under the card: image size, file folder, or link host.</summary>
+    [JsonIgnore]
+    public string Detail
+    {
+        get
+        {
+            try
+            {
+                return Kind switch
+                {
+                    ClipKind.Image when Thumbnail is { } t && ImageFile != null => ImageSize(ImageFile),
+                    ClipKind.Files when Files.Count > 0 => Files.Count == 1 ? Path.GetFileName(Path.GetDirectoryName(Files[0])) ?? "" : $"{Files.Count} files",
+                    ClipKind.Link when Uri.TryCreate(Text.Trim(), UriKind.Absolute, out var u) => u.Host,
+                    _ => $"{Text.Length} characters",
+                };
+            }
+            catch { return ""; }
+        }
+    }
+
+    private static string ImageSize(string file)
+    {
+        var d = BitmapFrame.Create(new Uri(file), BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+        return $"{d.PixelWidth} × {d.PixelHeight}";
+    }
+
+    private static System.Windows.Media.SolidColorBrush Frozen(byte a, uint rgb)
+    {
+        var b = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(a, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+        b.Freeze();
+        return b;
+    }
+
+    private uint KindRgb => Kind switch { ClipKind.Link => 0x2EC4C4u, ClipKind.Image => 0x3DDC84u, ClipKind.Files => 0xF5A623u, _ => 0x4FA3FFu };
+
+    /// <summary>Colour of the card's label, by kind.</summary>
+    [JsonIgnore] public System.Windows.Media.Brush KindBrush => Frozen(0xFF, KindRgb);
+
+    /// <summary>Tinted strip behind the card's label.</summary>
+    [JsonIgnore] public System.Windows.Media.Brush HeaderBrush => Frozen(0x30, KindRgb);
 }
 
 /// <summary>Clipboard history: text, links, images and files. Everything stays in %AppData%\CyaNotch.</summary>

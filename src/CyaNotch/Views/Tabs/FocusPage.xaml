@@ -3,12 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260"/>
+            <ColumnDefinition Width="150"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- ring with time left -->
-        <Grid Width="200" Height="200" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Viewbox Width="140" Height="140" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid Width="200" Height="200">
             <Ellipse Stroke="{DynamicResource TrackBrush}" StrokeThickness="10"/>
             <Path x:Name="Arc" Stroke="{DynamicResource AccentBrush}" StrokeThickness="10" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
             <StackPanel VerticalAlignment="Center">
@@ -17,18 +18,19 @@
                 <TextBlock x:Name="Today" Style="{StaticResource Sub}" HorizontalAlignment="Center"/>
             </StackPanel>
         </Grid>
+        </Viewbox>
 
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,6,0">
-            <TextBlock Text="Focus for" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <TextBlock Text="Focus for" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
             <WrapPanel x:Name="Presets"/>
-            <TextBlock Text="Then a break of" FontWeight="SemiBold" Margin="0,14,0,8"/>
+            <TextBlock Text="Then a break of" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,4"/>
             <WrapPanel x:Name="BreakPresets"/>
-            <CheckBox x:Name="Silence" Content="Hold back notification pop-ups while focusing" Margin="0,16,0,0"
+            <CheckBox x:Name="Silence" Content="Quiet pop-ups while focusing" FontSize="12" Margin="0,8,0,0"
                       Foreground="{DynamicResource TextBrush}" Click="Silence_Click"/>
-            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                <Button x:Name="StartBtn" Style="{StaticResource AccentPill}" Content="Start focus" Click="Start_Click"/>
-                <Button x:Name="BreakBtn" Style="{StaticResource PillButton}" Content="Take a break" Margin="8,0,0,0" Click="Break_Click"/>
-                <Button x:Name="StopBtn" Style="{StaticResource PillButton}" Content="Stop" Margin="8,0,0,0" Click="Stop_Click"/>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button x:Name="StartBtn" Style="{StaticResource AccentPill}" Content="Start" Click="Start_Click"/>
+                <Button x:Name="BreakBtn" Style="{StaticResource PillButton}" Content="Break" Margin="6,0,0,0" Click="Break_Click"/>
+                <Button x:Name="StopBtn" Style="{StaticResource PillButton}" Content="Stop" Margin="6,0,0,0" Click="Stop_Click"/>
             </StackPanel>
         </StackPanel>
     </Grid>

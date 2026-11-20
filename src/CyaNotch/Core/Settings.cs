@@ -124,7 +124,13 @@ public sealed class Settings
     public double CollapsedHeight { get; set; } = 34;
     /// <summary>What the island does over fullscreen games and videos.</summary>
     public GameMode FullscreenMode { get; set; } = GameMode.Strip;
-    public VisualizerStyle VisualizerStyle { get; set; } = VisualizerStyle.Bars;
+    public VisualizerStyle VisualizerStyle { get; set; } = VisualizerStyle.Dots;
+
+    /// <summary>Bumped when a new look should replace an old default once.</summary>
+    public int LayoutVersion { get; set; }
+
+    /// <summary>Network speed in megabits instead of megabytes.</summary>
+    public bool NetInBits { get; set; }
     /// <summary>Tint the visualizer and progress line with a colour from the song's artwork.</summary>
     public bool ArtworkColors { get; set; } = true;
     /// <summary>Show a soft blur of the artwork behind the pill and the music card.</summary>
@@ -178,6 +184,13 @@ public sealed class Settings
     public static void Load()
     {
         Current = Storage.Load<Settings>("settings.json") ?? new Settings();
+        if (Current.LayoutVersion < 2)
+        {
+            // The resting pill now shows the artwork on the left and dots on the right.
+            Current.VisualizerStyle = VisualizerStyle.Dots;
+            Current.LayoutVersion = 2;
+            SaveQuietly();
+        }
     }
 
     public static void Save()

@@ -3,9 +3,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver">
     <DockPanel>
-        <Grid DockPanel.Dock="Top" Margin="4,0,4,8">
-            <TextBlock Style="{StaticResource Sub}" VerticalAlignment="Center"
-                       Text="Click to open. Ctrl+Alt+1 to 9 open the first nine, even over games. Drop apps here to add them."/>
+        <Grid DockPanel.Dock="Top" Margin="4,0,4,6">
+            <TextBlock Style="{StaticResource Sub}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,70,0"
+                       Text="Ctrl+Alt+1 to 9 open them, even over games. Drop apps here."
+                       ToolTip="Click to open. Ctrl+Alt+1 to 9 open the first nine, even over games. Drop shortcuts or .exe files here to add them."/>
             <Button Style="{StaticResource PillButton}" HorizontalAlignment="Right" Content="Add app" Click="Add_Click"/>
         </Grid>
         <Grid>
@@ -16,7 +17,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border x:Name="Tile" Width="88" Height="92" CornerRadius="16" Margin="3" Padding="6" Background="Transparent"
+                            <Border x:Name="Tile" Width="70" Height="74" CornerRadius="14" Margin="2" Padding="4" Background="Transparent"
                                     Cursor="Hand" ToolTip="{Binding Path}" MouseLeftButtonUp="App_Click">
                                 <Border.ContextMenu>
                                     <ContextMenu>
@@ -25,12 +26,12 @@
                                 </Border.ContextMenu>
                                 <Grid>
                                     <Grid.RowDefinitions>
-                                        <RowDefinition Height="50"/>
+                                        <RowDefinition Height="40"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
-                                    <Image Source="{Binding Icon}" Width="40" Height="40" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <Image Source="{Binding Icon}" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
                                     <TextBlock Text="{Binding Key}" Style="{StaticResource Sub}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top"/>
-                                    <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="11.5" TextAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="30"/>
+                                    <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="10.5" TextAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="30"/>
                                 </Grid>
                             </Border>
                             <DataTemplate.Triggers>
@@ -42,7 +43,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-            <TextBlock x:Name="Empty" Style="{StaticResource Sub}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <TextBlock x:Name="Empty" Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"
                        Text="No apps yet. Drop shortcuts or .exe files here, or press Add app."/>
         </Grid>
     </DockPanel>

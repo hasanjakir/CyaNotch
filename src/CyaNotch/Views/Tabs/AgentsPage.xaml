@@ -4,7 +4,7 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="160"/>
         </Grid.ColumnDefinitions>
 
         <!-- sessions -->
@@ -14,24 +14,24 @@
                 <ListBox x:Name="List" Style="{StaticResource PlainList}" SelectionChanged="List_SelectionChanged">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border x:Name="Row" Background="{DynamicResource CardBrush}" CornerRadius="12" Padding="12,8" Margin="0,2" Cursor="Hand">
+                            <Border x:Name="Row" Background="{DynamicResource CardBrush}" CornerRadius="12" Padding="9,6" Margin="0,2" Cursor="Hand">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <Ellipse x:Name="Dot" Width="9" Height="9" Margin="0,5,10,0" VerticalAlignment="Top" Fill="#8F94A0"/>
+                                    <Ellipse x:Name="Dot" Width="7" Height="7" Margin="0,5,7,0" VerticalAlignment="Top" Fill="#8F94A0"/>
                                     <StackPanel Grid.Column="1">
-                                        <TextBlock>
+                                        <TextBlock FontSize="12" TextTrimming="CharacterEllipsis">
                                             <Run Text="{Binding Agent, Mode=OneWay}" FontWeight="SemiBold"/>
                                             <Run Text="  "/>
                                             <Run Text="{Binding Folder, Mode=OneWay}" Foreground="{DynamicResource SubTextBrush}"/>
                                         </TextBlock>
-                                        <TextBlock Text="{Binding LastStep, Mode=OneWay}" Style="{StaticResource Sub}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding LastStep, Mode=OneWay}" Style="{StaticResource Sub}" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                                        <TextBlock x:Name="StateText" Text="{Binding StateText, Mode=OneWay}" FontSize="11.5" FontWeight="SemiBold" HorizontalAlignment="Right"/>
+                                        <TextBlock x:Name="StateText" Text="{Binding StateText, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right"/>
                                         <TextBlock Text="{Binding Ago, Mode=OneWay}" Style="{StaticResource Sub}" HorizontalAlignment="Right"/>
                                     </StackPanel>
                                 </Grid>
@@ -51,13 +51,13 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <TextBlock x:Name="Empty" Style="{StaticResource Sub}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                           Text="No agents running right now.&#x0a;Start Claude Code or Codex and they'll show up here."/>
+                <TextBlock x:Name="Empty" Style="{StaticResource Sub}" FontSize="11.5" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                           Text="No agents running. Start Claude Code or Codex and they show up here."/>
             </Grid>
         </DockPanel>
 
         <!-- timeline / setup -->
-        <Border Grid.Column="1" Style="{StaticResource Tile}" Margin="8,0,0,0">
+        <Border Grid.Column="1" CornerRadius="14" Background="#16FFFFFF" Padding="9,7" Margin="6,0,0,0">
             <Grid>
                 <DockPanel x:Name="Timeline" Visibility="Collapsed">
                     <TextBlock x:Name="TimelineTitle" DockPanel.Dock="Top" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
@@ -80,14 +80,12 @@
                     </ScrollViewer>
                 </DockPanel>
                 <StackPanel x:Name="Setup">
-                    <TextBlock Text="Live status from Claude Code" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                    <TextBlock Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
-                               Text="Without setup, CyaNotch sees when a Claude Code or Codex session is busy. Connect Claude Code to also see each step, and get a pop-up when it needs you or finishes. This adds small hooks to your Claude Code settings (a backup is kept)."/>
-                    <Button x:Name="ConnectBtn" Style="{StaticResource AccentPill}" HorizontalAlignment="Left" Margin="0,10,0,0" Content="Connect Claude Code" Click="Connect_Click"/>
-                    <TextBlock x:Name="ConnectState" Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                    <TextBlock Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap" Margin="0,12,0,0"
-                               Text="Other agents can report by sending JSON to this PC:"/>
-                    <TextBox x:Name="CustomHint" Style="{StaticResource Field}" IsReadOnly="True" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="Live steps from Claude Code" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Style="{StaticResource Sub}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Text="Adds small hooks to Claude Code (a backup is kept) so you see each step and get told when it needs you."/>
+                    <Button x:Name="ConnectBtn" Style="{StaticResource AccentPill}" HorizontalAlignment="Left" Margin="0,7,0,0" Content="Connect" Click="Connect_Click"/>
+                    <TextBlock x:Name="ConnectState" Style="{StaticResource Sub}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBox x:Name="CustomHint" Visibility="Collapsed"/>
                 </StackPanel>
             </Grid>
         </Border>

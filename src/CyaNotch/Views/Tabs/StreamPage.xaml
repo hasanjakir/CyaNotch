@@ -1,69 +1,85 @@
 <UserControl x:Class="CyaNotch.Views.Tabs.StreamPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+    <DockPanel>
+        <!-- Screenshots / Recordings / Stream -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <RadioButton x:Name="ViewShots" Style="{StaticResource Seg}" Padding="10,3" Content="Screenshots" GroupName="CapView" IsChecked="True" Checked="View_Checked"/>
+                <RadioButton x:Name="ViewRecs" Style="{StaticResource Seg}" Padding="10,3" Content="Recordings" GroupName="CapView" Checked="View_Checked"/>
+                <RadioButton x:Name="ViewStream" Style="{StaticResource Seg}" Padding="10,3" Content="Stream" GroupName="CapView" Checked="View_Checked"/>
+            </StackPanel>
+            <Button Style="{StaticResource IconButton}" Width="26" Height="26" FontSize="12" Content="&#xE8B7;" HorizontalAlignment="Right" ToolTip="Open the folder" Click="Folder_Click"/>
+        </Grid>
 
-        <!-- captures -->
-        <Border Style="{StaticResource Tile}">
-            <StackPanel>
-                <TextBlock Style="{StaticResource Sub}" Text="Capture"/>
-                <UniformGrid Columns="3" Margin="0,10,0,0">
-                    <Button Style="{StaticResource PillButton}" Margin="0,0,4,0" Click="Shot_Click" ToolTip="Save the screen under the pointer">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource Icon}" FontSize="20" Text="&#xE722;"/>
-                            <TextBlock Text="Screenshot" FontSize="11.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
+        <Grid>
+            <!-- gallery (screenshots or recordings) -->
+            <DockPanel x:Name="GalleryView">
+                <Grid DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <TextBlock x:Name="GalleryCount" Style="{StaticResource Sub}" FontSize="11" VerticalAlignment="Center"/>
+                    <StackPanel x:Name="ShotActions" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Style="{StaticResource PillButton}" Padding="10,4" Click="Shot_Click" ToolTip="Save the screen under the pointer">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" FontSize="11" Text="&#xE722;" Margin="0,0,6,0"/>
+                                <TextBlock Text="Screenshot" FontSize="11.5"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource PillButton}" Padding="10,4" Margin="6,0,0,0" Click="Snip_Click" ToolTip="Snip part of the screen">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Icon}" FontSize="11" Text="&#xE7A8;" Margin="0,0,6,0"/>
+                                <TextBlock Text="Snip" FontSize="11.5"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <Button x:Name="RecBtn" HorizontalAlignment="Center" Cursor="Hand" Focusable="False" Visibility="Collapsed" Click="Rec_Click"
+                            ToolTip="Record the active app with its sound (Xbox Game Bar)">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border CornerRadius="14" Background="{StaticResource DangerBrush}" Padding="14,5">
+                                    <ContentPresenter/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <Rectangle x:Name="RecDot" Width="9" Height="9" RadiusX="4.5" RadiusY="4.5" Fill="White" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock x:Name="RecText" Text="Start recording" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource PillButton}" Margin="2,0" Click="Snip_Click" ToolTip="Snip part of the screen">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource Icon}" FontSize="20" Text="&#xE7A8;"/>
-                            <TextBlock Text="Snip" FontSize="11.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="RecBtn" Style="{StaticResource PillButton}" Margin="4,0,0,0" Click="Rec_Click" ToolTip="Record the active app with its sound (Xbox Game Bar)">
-                        <StackPanel>
-                            <Ellipse x:Name="RecDot" Width="18" Height="18" Fill="{StaticResource DangerBrush}" HorizontalAlignment="Center"/>
-                            <TextBlock x:Name="RecText" Text="Record" FontSize="11.5" Margin="0,4,0,0" HorizontalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                </UniformGrid>
-                <CheckBox x:Name="OnShelf" Content="Put screenshots on the shelf" Foreground="{DynamicResource TextBrush}" Margin="0,12,0,0" Click="OnShelf_Click"/>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Style="{StaticResource PillButton}" Content="Screenshots folder" Click="ShotsFolder_Click"/>
-                    <Button Style="{StaticResource PillButton}" Content="Recordings" Margin="6,0,0,0" Click="RecFolder_Click"/>
-                </StackPanel>
-
-                <TextBlock Style="{StaticResource Sub}" Text="OBS" Margin="0,16,0,0"/>
-                <CheckBox x:Name="ObsOn" Content="Show a REC / LIVE pill while OBS records or streams" Foreground="{DynamicResource TextBrush}" Margin="0,6,0,0" Click="Obs_Click"/>
-                <Grid Margin="0,6,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="70"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox x:Name="ObsPort" Style="{StaticResource Field}" Tag="4455" LostFocus="ObsField_LostFocus"/>
-                    <PasswordBox x:Name="ObsPass" Grid.Column="1" Margin="6,0,0,0" Padding="8,5" LostFocus="ObsField_LostFocus" ToolTip="OBS WebSocket password (Tools → WebSocket Server Settings)"/>
+                    <CheckBox x:Name="OnShelf" Content="On shelf" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource SubTextBrush}"
+                              ToolTip="Put new screenshots on the shelf too" Click="OnShelf_Click"/>
                 </Grid>
-                <TextBlock x:Name="ObsStatus" Style="{StaticResource Sub}" Margin="0,4,0,0" TextWrapping="Wrap"/>
-            </StackPanel>
-        </Border>
+                <Grid>
+                    <ScrollViewer x:Name="GalleryScroll" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="Gallery_Wheel">
+                        <StackPanel x:Name="Gallery" Orientation="Horizontal"/>
+                    </ScrollViewer>
+                    <TextBlock x:Name="GalleryEmpty" Style="{StaticResource Sub}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+            </DockPanel>
 
-        <!-- chat -->
-        <Border Grid.Column="1" Style="{StaticResource Tile}">
-            <StackPanel>
-                <TextBlock Style="{StaticResource Sub}" Text="Stream chat"/>
-                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <RadioButton x:Name="Twitch" Style="{StaticResource Chip}" Content="Twitch" GroupName="Chat" Margin="0,0,6,0" Checked="Platform_Checked"/>
-                    <RadioButton x:Name="YouTube" Style="{StaticResource Chip}" Content="YouTube" GroupName="Chat" Checked="Platform_Checked"/>
+            <!-- OBS and chat -->
+            <ScrollViewer x:Name="StreamView" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="2,0">
+                    <CheckBox x:Name="ObsOn" Content="REC / LIVE pill while OBS records or streams" FontSize="12" Foreground="{DynamicResource TextBrush}" Click="Obs_Click"/>
+                    <Grid Margin="0,5,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ObsPort" Style="{StaticResource Field}" FontSize="11" Tag="4455" LostFocus="ObsField_LostFocus"/>
+                        <PasswordBox x:Name="ObsPass" Grid.Column="1" Margin="6,0,0,0" Padding="8,4" LostFocus="ObsField_LostFocus" ToolTip="OBS WebSocket password (Tools → WebSocket Server Settings)"/>
+                    </Grid>
+                    <TextBlock x:Name="ObsStatus" Style="{StaticResource Sub}" FontSize="11" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                    <Grid Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="Twitch" Style="{StaticResource Chip}" Content="Twitch" GroupName="Chat" Margin="0,0,6,0" Checked="Platform_Checked"/>
+                            <RadioButton x:Name="YouTube" Style="{StaticResource Chip}" Content="YouTube" GroupName="Chat" Checked="Platform_Checked"/>
+                        </StackPanel>
+                        <Button x:Name="ChatBtn" Style="{StaticResource AccentPill}" HorizontalAlignment="Right" Content="Open chat" Click="Chat_Click"
+                                ToolTip="A small chat window that stays on top, even over borderless games"/>
+                    </Grid>
+                    <TextBox x:Name="Channel" Style="{StaticResource Field}" FontSize="11" Margin="0,6,0,0" LostFocus="Channel_LostFocus"/>
                 </StackPanel>
-                <TextBox x:Name="Channel" Style="{StaticResource Field}" Margin="0,10,0,0" LostFocus="Channel_LostFocus"/>
-                <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,0" TextWrapping="Wrap"
-                           Text="Opens the chat in a small window that stays on top, even over games in borderless mode. Drag and resize it anywhere."/>
-                <Button x:Name="ChatBtn" Style="{StaticResource AccentPill}" HorizontalAlignment="Left" Margin="0,12,0,0" Content="Open chat" Click="Chat_Click"/>
-            </StackPanel>
-        </Border>
-    </Grid>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
 </UserControl>
