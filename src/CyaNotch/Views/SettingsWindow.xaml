@@ -450,7 +450,7 @@
                                 <TextBlock Style="{StaticResource Desc}" Text="What plays beside the artwork on the pill while music plays."/>
                             </StackPanel>
                             <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
-                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="VizDots" Content="Pixels" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizBars" Content="Bars" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizTitle" Content="Bars + title" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/></StackPanel></Border>
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="VizDots" Content="Pixels" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizBars" Content="Bars" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizTitle" Content="Bars + title" GroupName="Viz" Checked="Changed" Visibility="Collapsed"/><RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/></StackPanel></Border>
                             </ContentControl>
                         </Grid>
                     </Border>

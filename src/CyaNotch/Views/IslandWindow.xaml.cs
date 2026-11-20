@@ -1376,9 +1376,11 @@ public partial class IslandWindow : Window
         var m = App.Media.State;
         var playing = MusicPlaying;
         var style = Settings.Current.VisualizerStyle;
-        // Notch while playing with bars or dots: cover on the left, the visualizer fills the rest.
-        // Bars with title and Off keep their usual look, so every choice in Settings shows.
-        var notchPlaying = playing && IsNotch && style is VisualizerStyle.Bars or VisualizerStyle.Dots;
+        // "Bars + title" is retired: the title in the middle of the bars got in the way.
+        if (style == VisualizerStyle.BarsWithTitle) style = VisualizerStyle.Bars;
+        // Bars (either shape) and the notch's dots: cover on the left, the visualizer fills the rest.
+        // The island's dots keep their small block on the right.
+        var notchPlaying = playing && (style == VisualizerStyle.Bars || IsNotch && style == VisualizerStyle.Dots);
         var fillDots = notchPlaying && style == VisualizerStyle.Dots;
         var dots = playing && style == VisualizerStyle.Dots && !notchPlaying;
         var showViz = playing && (style is VisualizerStyle.Bars or VisualizerStyle.BarsWithTitle || fillDots);

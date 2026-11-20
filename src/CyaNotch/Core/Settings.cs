@@ -201,6 +201,13 @@ public sealed class Settings
             Current.LayoutVersion = 2;
             SaveQuietly();
         }
+        if (Current.LayoutVersion < 3)
+        {
+            // "Bars + title" was dropped: those pills get plain bars beside the cover.
+            if (Current.VisualizerStyle == VisualizerStyle.BarsWithTitle) Current.VisualizerStyle = VisualizerStyle.Bars;
+            Current.LayoutVersion = 3;
+            SaveQuietly();
+        }
     }
 
     public static void Save()

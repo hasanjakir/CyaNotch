@@ -391,6 +391,55 @@ public static partial class TrackFinder
         return art == null ? null : new TrackExtra { Art = art, Title = Str(b, "name"), Artist = FirstArtist(b), Source = "Spotify" };
     }
 
+    private static readonly Dictionary<string, TrackExtra?> YouTubeCache = new();
+
+    [GeneratedRegex("\"videoId\":\"([A-Za-z0-9_-]{11})\"")]
+    private static partial Regex VideoId();
+
+    /// <summary>
+    /// The thumbnail of the video playing in a browser: finds it on YouTube by its title (and channel),
+    /// no account needed. Works for music videos and anything else.
+    /// </summary>
+    public static async Task<TrackExtra?> YouTubeThumbAsync(string title, string channel)
+    {
+        var q = (title + " " + channel.Replace("- Topic", "")).Trim();
+        if (q.Length == 0) return null;
+        lock (YouTubeCache) if (YouTubeCache.TryGetValue(q, out var hit)) return hit;
+        TrackExtra? result = null;
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, "https://www.youtube.com/results?search_query=" + Uri.EscapeDataString(q));
+            req.Headers.TryAddWithoutValidation("Accept-Language", "en-US,en;q=0.8");
+            using var resp = await Http.SendAsync(req);
+            if (resp.IsSuccessStatusCode)
+            {
+                var html = await resp.Content.ReadAsStringAsync();
+                var m = VideoId().Match(html);
+                if (m.Success)
+                {
+                    var id = m.Groups[1].Value;
+                    BitmapImage? art = null;
+                    // 16:9 without black bars; the square box crops the middle.
+                    foreach (var name in new[] { "maxresdefault", "mqdefault", "hqdefault" })
+                    {
+                        try { art = await DownloadAsync($"https://i.ytimg.com/vi/{id}/{name}.jpg"); }
+                        catch { art = null; }
+                        if (art != null) break;
+                    }
+                    if (art != null) result = new TrackExtra { Art = art, Source = "YouTube" };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Info("YouTube thumbnail lookup failed: " + ex.Message);
+            return null;
+        }
+        lock (YouTubeCache) YouTubeCache[q] = result;
+        Log.Info(result == null ? $"No YouTube thumbnail for \"{q}\"" : $"YouTube thumbnail for \"{q}\"");
+        return result;
+    }
+
     private static async Task<TrackExtra?> ITunesAsync(string title, string artist)
     {
         var term = Uri.EscapeDataString((artist + " " + title).Trim());
