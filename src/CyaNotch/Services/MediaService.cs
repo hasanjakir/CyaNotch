@@ -208,12 +208,19 @@ public sealed class MediaService
                 _art = await LoadArtAsync(props?.Thumbnail);
                 if (_art == null && props?.Thumbnail != null) _artRetries++;
                 else _artRetries = 0;
-                if (_art == null && _artRetries is > 0 and < 4) _ = RetryArtSoon();
+                if (_art == null && _artRetries is > 0 and < 8) _ = RetryArtSoon();
             }
-            // No picture from the app (or it never loads): look the song up.
-            if (_art == null && (props?.Thumbnail == null || _artRetries >= 4) && !string.IsNullOrWhiteSpace(props?.Title))
-                FindExtra(key, props!.Title, props.Artist ?? "", null);
+            var browser = IsBrowser(s.SourceAppUserModelId);
+            var adLike = browser && LooksLikeAd(props?.Title, props?.Artist);
+            // No picture from the app (or it never loads): look it up. Videos in a browser get their
+            // YouTube thumbnail; songs get their album cover.
+            if (_art == null && !adLike && (props?.Thumbnail == null || _artRetries >= 8) && !string.IsNullOrWhiteSpace(props?.Title))
+                FindExtra(key, props!.Title, props.Artist ?? "", null, browser);
             var extra = _extraKey == key ? _extra : null;
+            var shown = _art ?? extra?.Art;
+            // During an ad YouTube drops the picture: keep the video's thumbnail up.
+            if (browser && shown == null && (adLike || _artRetries > 0)) shown = _lastBrowserArt;
+            if (browser && shown != null && !adLike) _lastBrowserArt = shown;
             var artist = props?.Artist ?? props?.AlbumArtist ?? "";
             if (string.IsNullOrWhiteSpace(artist) && !string.IsNullOrWhiteSpace(extra?.Artist)) artist = extra!.Artist!;
 
@@ -225,7 +232,7 @@ public sealed class MediaService
                 Artist = artist,
                 AppName = FriendlyApp(s.SourceAppUserModelId),
                 AppId = s.SourceAppUserModelId ?? "",
-                Artwork = _art ?? extra?.Art,
+                Artwork = shown,
                 Position = timeline?.Position ?? TimeSpan.Zero,
                 Duration = timeline == null ? TimeSpan.Zero : timeline.EndTime - timeline.StartTime,
                 LastUpdated = timeline?.LastUpdatedTime ?? DateTimeOffset.Now,
@@ -238,6 +245,23 @@ public sealed class MediaService
     }
 
     private int _artRetries;
+    private BitmapImage? _lastBrowserArt;
+
+    private static bool IsBrowser(string? aumid)
+    {
+        var a = (aumid ?? "").ToLowerInvariant();
+        return a.Contains("chrome") || a.Contains("msedge") || a.Contains("firefox") || a.Contains("brave")
+            || a.Contains("opera") || a.Contains("vivaldi") || a.Contains("arc") || a.Contains("zen");
+    }
+
+    private static bool LooksLikeAd(string? title, string? artist)
+    {
+        var t = (title ?? "").Trim();
+        if (t.Length == 0) return true;
+        return t.Equals("Advertisement", StringComparison.OrdinalIgnoreCase) || t.Equals("Ad", StringComparison.OrdinalIgnoreCase)
+            || t.StartsWith("Ad ·", StringComparison.OrdinalIgnoreCase) || t.StartsWith("Ad •", StringComparison.OrdinalIgnoreCase)
+            || t.Equals("Sponsored", StringComparison.OrdinalIgnoreCase) || t.Equals("YouTube", StringComparison.OrdinalIgnoreCase);
+    }
 
     private void PublishWindow(WindowTrack w)
     {
@@ -261,7 +285,7 @@ public sealed class MediaService
     }
 
     /// <summary>Looks for the cover once per song: the file's own picture, then the online catalogues.</summary>
-    private void FindExtra(string key, string title, string artist, WindowTrack? w)
+    private void FindExtra(string key, string title, string artist, WindowTrack? w, bool browser = false)
     {
         if (key == _extraKey) return;
         _extraKey = key;
@@ -272,7 +296,9 @@ public sealed class MediaService
             try
             {
                 if (w != null) x = await TrackFinder.FromFileAsync(w);
-                if (x?.Art == null && Settings.Current.OnlineArtwork)
+                if (browser && Settings.Current.OnlineArtwork) x = await TrackFinder.YouTubeThumbAsync(title, artist);
+                // A video with no frame thumbnail isn't a song to look up.
+                if (x?.Art == null && x?.IsVideo != true && Settings.Current.OnlineArtwork)
                 {
                     var o = await TrackFinder.OnlineAsync(x?.Title ?? title, x?.Artist ?? artist);
                     if (o != null)
@@ -301,7 +327,7 @@ public sealed class MediaService
 
     private async Task RetryArtSoon()
     {
-        await Task.Delay(700);
+        await Task.Delay(800);
         await RefreshAsync();
     }
 
@@ -330,8 +356,9 @@ public sealed class MediaService
             bmp.Freeze();
             return bmp;
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Info("Artwork from the app couldn't be read: " + ex.Message);
             return null;
         }
     }

@@ -136,6 +136,14 @@ public sealed class Settings
     /// <summary>Show a soft blur of the artwork behind the pill and the music card.</summary>
     /// <summary>Look up covers the player doesn't provide (iTunes / Deezer catalogues).</summary>
     public bool OnlineArtwork { get; set; } = true;
+    /// <summary>Your own free Spotify developer app, for covers from Spotify's catalogue (optional).</summary>
+    public string SpotifyClientId { get; set; } = "";
+    [JsonIgnore] public string SpotifySecret
+    {
+        get => Secret.Unprotect(SpotifySecretProtected);
+        set => SpotifySecretProtected = Secret.Protect(value);
+    }
+    public string SpotifySecretProtected { get; set; } = "";
     public bool AmbientArtwork { get; set; } = true;
     public bool VisualizerMirrored { get; set; } = true;
     /// <summary>Hide the island until the mouse touches the top edge.</summary>
@@ -191,6 +199,13 @@ public sealed class Settings
             // The resting pill now shows the artwork on the left and dots on the right.
             Current.VisualizerStyle = VisualizerStyle.Dots;
             Current.LayoutVersion = 2;
+            SaveQuietly();
+        }
+        if (Current.LayoutVersion < 3)
+        {
+            // "Bars + title" was dropped: those pills get plain bars beside the cover.
+            if (Current.VisualizerStyle == VisualizerStyle.BarsWithTitle) Current.VisualizerStyle = VisualizerStyle.Bars;
+            Current.LayoutVersion = 3;
             SaveQuietly();
         }
     }

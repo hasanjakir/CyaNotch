@@ -123,6 +123,8 @@ public partial class IslandWindow : Window
         CompositionTarget.Rendering += (_, _) => SyncWindowToIsland();
 
         Settings.Changed += OnSettingsChanged;
+        App.Bluetooth.Changed += OnBluetoothChanged;
+        App.Bluetooth.Connected += OnBluetoothConnected;
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => Dispatcher.BeginInvoke(PositionWindow);
     }
 
@@ -366,6 +368,7 @@ public partial class IslandWindow : Window
             ScheduleGlance();
             ApplyShape(animate: true);
             UpdateCompactLayout();
+            AnimateIfCompact(); // a new visualizer style can change the pill's width
             _lyricsKey = "";
             LoadLyrics(App.Media.State);
             _calDay = default;
@@ -386,7 +389,12 @@ public partial class IslandWindow : Window
         var w = Settings.Current.CollapsedWidth;
         var h = Settings.Current.CollapsedHeight;
         var m = App.Media.State;
-        if (MusicPlaying) w += IsNotch ? 130 : Settings.Current.VisualizerStyle switch { VisualizerStyle.Off => 70, VisualizerStyle.Dots => 40, _ => 130 };
+        if (MusicPlaying) w += Settings.Current.VisualizerStyle switch
+        {
+            VisualizerStyle.Off => 70,
+            VisualizerStyle.Dots => IsNotch ? 130 : 40, // the notch fills its width with the dot matrix
+            _ => 130,
+        };
         if (_callStart != null) w += 40;
         if (_timerEnd != null) w += 30;
         if (RecPill?.Visibility == Visibility.Visible) w += 70;
@@ -394,7 +402,9 @@ public partial class IslandWindow : Window
         return new Size(w, h);
     }
 
-    private static Size PeekSize() => new(400, 64);
+    private Size PeekSize() => PeekDevices?.Visibility == Visibility.Visible
+        ? new Size(440, Math.Min(150, 74 + 24 * Math.Ceiling(Math.Max(1, PeekDevices.Items.Count) / 3.0)))
+        : new Size(400, 64);
     /// <summary>The music tab is a compact card; the other tabs need more room.</summary>
     /// <summary>The open card is narrow and only as tall as the tab needs, like a phone's island.</summary>
     private Size ExpandedSize()
@@ -403,6 +413,7 @@ public partial class IslandWindow : Window
         if (QrOverlay?.Visibility == Visibility.Visible) return new Size(w, 196);
         if (TabHome?.IsChecked == true) return new Size(w, LyricsBox?.Visibility == Visibility.Visible ? 222 : 166);
         if (TabControls?.IsChecked == true) return new Size(w, 214);
+        if (TabDevices?.IsChecked == true) return new Size(w, Math.Clamp(96 + 41 * App.Bluetooth.Devices.Count, 150, 330));
         if (TabWidgets?.IsChecked == true) return new Size(w, 206);
         if (TabCalls?.IsChecked == true) return new Size(w, 182);
         if (TabClip?.IsChecked == true) return new Size(w, 208);
@@ -583,7 +594,11 @@ public partial class IslandWindow : Window
         PeekIcon.Text = icon;
         PeekTitle.Text = title;
         PeekBody.Text = body;
-        PeekBody.Visibility = string.IsNullOrWhiteSpace(body) ? Visibility.Collapsed : Visibility.Visible;
+        PeekBody.Visibility = string.IsNullOrWhiteSpace(body) || body == BtPeek ? Visibility.Collapsed : Visibility.Visible;
+        var bt = body == BtPeek;
+        PeekDevices.Visibility = bt ? Visibility.Visible : Visibility.Collapsed;
+        PeekDevices.ItemsSource = bt ? DevicesFirst(_btPeekId) : null;
+        if (_mode == Mode.Peek) AnimateTo(PeekSize());
         var total = _peekBurst.Count + _peeks.Count;
         PeekCount.Text = total > 1 ? $"{i + 1}/{total}" : "";
         PeekCount.Visibility = total > 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -595,10 +610,6 @@ public partial class IslandWindow : Window
         var (icon, title, body) = _peeks.Dequeue();
         _peekBurst.Add((icon, title, body));
         ShowPeekAt(_peekBurst.Count - 1);
-        PeekIcon.Text = icon;
-        PeekTitle.Text = title;
-        PeekBody.Text = body;
-        PeekBody.Visibility = string.IsNullOrWhiteSpace(body) ? Visibility.Collapsed : Visibility.Visible;
 
         if (_mode != Mode.Peek)
         {
@@ -1233,15 +1244,55 @@ public partial class IslandWindow : Window
         PageAgents.Visibility = TabAgents.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (sender is RadioButton { IsChecked: true } && QrOverlay.Visibility == Visibility.Visible) QrOverlay.Visibility = Visibility.Collapsed;
         if (_mode == Mode.Expanded) AnimateTo(ExpandedSize(), bouncy: false);
-        foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabLauncher, TabFocus, TabAgents, TabStream, TabCalls, TabReminders })
+        foreach (var t in new[] { TabHome, TabWeb, TabNotes, TabShelf, TabClip, TabWidgets, TabControls, TabDevices, TabLauncher, TabFocus, TabAgents, TabStream, TabCalls, TabReminders })
             if (t.IsChecked == true) { Settings.Current.LastTab = t.Name; break; }
         PageClip.Visibility = TabClip.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageShelf.Visibility = TabShelf.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageControls.Visibility = TabControls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageDevices.Visibility = TabDevices.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (TabDevices.IsChecked == true) { RefreshDevices(); _ = App.Bluetooth.RefreshAllAsync(); }
         PageNotes.Visibility = TabNotes.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageReminders.Visibility = TabReminders.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         if (TabControls.IsChecked == true) { RefreshControls(); UpdateDeckUi(); }
         UpdateCardViz();
+    }
+
+    // =====================================================================
+    // Bluetooth devices
+    // =====================================================================
+
+    private const string BtPeek = "\u0001bt";
+
+    private void RefreshDevices()
+    {
+        var list = App.Bluetooth.Devices;
+        DevicesList.ItemsSource = list;
+        DevicesEmpty.Visibility = list.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        RefitExpanded();
+    }
+
+    private void OnBluetoothChanged() => Dispatcher.BeginInvoke(() =>
+    {
+        if (TabDevices.IsChecked == true) RefreshDevices();
+        if (_mode == Mode.Peek && PeekDevices.Visibility == Visibility.Visible) PeekDevices.ItemsSource = DevicesFirst(_btPeekId);
+    });
+
+    private string? _btPeekId;
+
+    /// <summary>The device that just connected first, then the rest.</summary>
+    private static List<BtDevice> DevicesFirst(string? id) =>
+        App.Bluetooth.Devices.OrderBy(d => d.Id == id ? 0 : 1).ToList();
+
+    private void OnBluetoothConnected(BtDevice d) => Dispatcher.BeginInvoke(() =>
+    {
+        _btPeekId = d.Id;
+        ShowPeek(d.Glyph, $"{d.Name} connected" + (d.Battery is { } b ? $" · {b}%" : ""), BtPeek);
+    });
+
+    private void BtSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try { Process.Start(new ProcessStartInfo("ms-settings:bluetooth") { UseShellExecute = true }); }
+        catch { }
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
@@ -1325,12 +1376,16 @@ public partial class IslandWindow : Window
         var m = App.Media.State;
         var playing = MusicPlaying;
         var style = Settings.Current.VisualizerStyle;
-        // Notch while playing: cover on the left, bars fill the rest, nothing else.
-        var notchPlaying = playing && IsNotch;
-        if (notchPlaying) style = VisualizerStyle.Bars;
-        var dots = playing && style == VisualizerStyle.Dots;
-        var showViz = playing && style is VisualizerStyle.Bars or VisualizerStyle.BarsWithTitle;
+        // "Bars + title" is retired: the title in the middle of the bars got in the way.
+        if (style == VisualizerStyle.BarsWithTitle) style = VisualizerStyle.Bars;
+        // Bars (either shape) and the notch's dots: cover on the left, the visualizer fills the rest.
+        // The island's dots keep their small block on the right.
+        var notchPlaying = playing && (style == VisualizerStyle.Bars || IsNotch && style == VisualizerStyle.Dots);
+        var fillDots = notchPlaying && style == VisualizerStyle.Dots;
+        var dots = playing && style == VisualizerStyle.Dots && !notchPlaying;
+        var showViz = playing && (style is VisualizerStyle.Bars or VisualizerStyle.BarsWithTitle || fillDots);
         var vizOnly = showViz && style == VisualizerStyle.Bars && !notchPlaying;
+        if (Viz.Dots != fillDots) { Viz.Dots = fillDots; Viz.InvalidateVisual(); }
         Grid.SetColumn(Viz, notchPlaying ? 1 : 0);
         Grid.SetColumnSpan(Viz, notchPlaying ? 2 : 3);
         Viz.Margin = notchPlaying ? new Thickness(8, 8, 2, 8) : new Thickness(4, 7, 4, 7);

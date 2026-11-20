@@ -421,7 +421,25 @@
                         </StackPanel>
                     </Border>
                     <CheckBox x:Name="ArtColorsBox" Content="Colour from the artwork" Tag="The visualizer and progress take the song cover's colour." Click="Changed"/>
-                    <CheckBox x:Name="OnlineArtBox" Content="Find missing covers" Tag="When a player doesn't share the album cover, CyaNotch reads it from the music file, or looks the song up in the iTunes and Deezer catalogues (only the song name is sent)."  Click="Changed"/>
+                    <CheckBox x:Name="OnlineArtBox" Content="Find missing covers" Tag="When a player doesn't share the album cover, CyaNotch reads it from the music file, then looks the song up on Spotify (with your key below), iTunes or Deezer. Only the song name is sent."  Click="Changed"/>
+                    <Border Style="{StaticResource Row}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource RowTitle}" Text="Covers from Spotify"/>
+                            <TextBlock Style="{StaticResource Desc}">
+                                Spotify only answers apps with a key. Make a free one: open
+                                <Hyperlink NavigateUri="https://developer.spotify.com/dashboard" RequestNavigate="Link_Navigate" Foreground="#9CC3FF">developer.spotify.com/dashboard</Hyperlink>,
+                                create an app (any name, redirect URI http://127.0.0.1), then paste its Client ID and Client secret here.
+                            </TextBlock>
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBox x:Name="SpotifyId" Style="{StaticResource Field}" ToolTip="Client ID"/>
+                                <PasswordBox x:Name="SpotifySecretBox" Grid.Column="1" Margin="8,0,0,0" Padding="8,6" Background="#14FFFFFF" Foreground="White"
+                                             BorderThickness="0" CaretBrush="White" VerticalContentAlignment="Center" ToolTip="Client secret"/>
+                                <Button Grid.Column="2" Style="{StaticResource PillButton}" Content="Save" Margin="8,0,0,0" Click="SaveSpotify_Click"/>
+                            </Grid>
+                            <TextBlock x:Name="SpotifyStatus" Style="{StaticResource Desc}" Margin="0,6,0,0" Text="Not set up: covers come from iTunes and Deezer."/>
+                        </StackPanel>
+                    </Border>
                     <CheckBox x:Name="AmbientBox" Content="Artwork glow" Tag="A soft blur of the cover behind the island on dark surfaces." Click="Changed"/>
                     <TextBlock Style="{StaticResource Group}" Text="MUSIC"/>
                     <Border Style="{StaticResource Row}">
@@ -432,7 +450,7 @@
                                 <TextBlock Style="{StaticResource Desc}" Text="What plays beside the artwork on the pill while music plays."/>
                             </StackPanel>
                             <ContentControl Grid.Column="1" VerticalAlignment="Center" Focusable="False">
-                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="VizDots" Content="Pixels" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizBars" Content="Bars" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizTitle" Content="Bars + title" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/></StackPanel></Border>
+                                <Border Style="{StaticResource SegBox}"><StackPanel Orientation="Horizontal"><RadioButton x:Name="VizDots" Content="Pixels" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizBars" Content="Bars" GroupName="Viz" Checked="Changed"/><RadioButton x:Name="VizTitle" Content="Bars + title" GroupName="Viz" Checked="Changed" Visibility="Collapsed"/><RadioButton x:Name="VizOff" Content="Off" GroupName="Viz" Checked="Changed"/></StackPanel></Border>
                             </ContentControl>
                         </Grid>
                     </Border>
