@@ -72,7 +72,6 @@
                 <Setter Property="Foreground" Value="{DynamicResource SubTextBrush}"/>
                 <Setter Property="FontFamily" Value="{StaticResource IconFont}"/>
                 <Setter Property="FontSize" Value="15"/>
-                <Setter Property="Content" Value="&#xE7C3;"/>
                 <Setter Property="Width" Value="36"/>
                 <Setter Property="Height" Value="36"/>
                 <Setter Property="Cursor" Value="Hand"/>
@@ -81,7 +80,15 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
                             <Border x:Name="Bd" Background="Transparent" CornerRadius="12">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <!-- lyrics: a rounded speech bubble with two lines of words -->
+                                <Viewbox Width="17" Height="17" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Stroke="{TemplateBinding Foreground}" StrokeThickness="1.7" StrokeLineJoin="Round"
+                                              Data="M6,3.5 H18 A3,3 0 0 1 21,6.5 V14 A3,3 0 0 1 18,17 H12 L7.5,20.5 V17 H6 A3,3 0 0 1 3,14 V6.5 A3,3 0 0 1 6,3.5 Z"/>
+                                        <Path x:Name="Words" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Data="M7.5,8.6 H16.5 M7.5,12.1 H13"/>
+                                    </Canvas>
+                                </Viewbox>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">

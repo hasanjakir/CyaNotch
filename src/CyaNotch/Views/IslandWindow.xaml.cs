@@ -100,22 +100,24 @@ public partial class IslandWindow : Window
 
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
-        Deactivated += (_, _) => { if (_mode == Mode.Expanded && !Island.IsMouseOver && QrOverlay.Visibility != Visibility.Visible) Collapse(); };
+        Deactivated += (_, _) => { if (_mode == Mode.Expanded && !CursorOverIsland() && Mouse.Captured == null && QrOverlay.Visibility != Visibility.Visible) Collapse(); };
 
-        _expandDelay.Tick += (_, _) => { _expandDelay.Stop(); Expand(); };
+        _expandDelay.Tick += (_, _) => { _expandDelay.Stop(); if (CursorOverIsland()) Expand(); };
         _collapseDelay.Tick += (_, _) =>
         {
             _collapseDelay.Stop();
-            if (Island.IsMouseOver) return;
+            if (CursorOverIsland()) return;
             if (QrOverlay.Visibility == Visibility.Visible) return; // phone is scanning the code
-            if (IsKeyboardFocusWithin && IsActive) return; // typing in a box: wait for click-away
+            if (Mouse.Captured != null) return; // dragging a slider or a dropdown is open
+            // typing in a box: wait for click-away (a clicked button keeping focus doesn't count)
+            if (IsActive && Keyboard.FocusedElement is TextBox or PasswordBox) return;
             Collapse();
         };
         _peekTimer.Tick += (_, _) => { _peekTimer.Stop(); EndPeek(); };
         _fast.Tick += (_, _) => FastTick();
         _slow.Tick += (_, _) => SlowTick();
         _weatherTimer.Tick += async (_, _) => await App.Weather.RefreshAsync();
-        _hover.Tick += (_, _) => AutoHideTick();
+        _hover.Tick += (_, _) => { HoverTick(); AutoHideTick(); };
         _glanceTimer.Tick += (_, _) => { _glanceTimer.Stop(); StartGlance(); ScheduleGlance(); };
         _glanceEnd.Tick += (_, _) => { _glanceEnd.Stop(); EndGlance(); };
         CompositionTarget.Rendering += (_, _) => SyncWindowToIsland();
@@ -384,7 +386,7 @@ public partial class IslandWindow : Window
         var w = Settings.Current.CollapsedWidth;
         var h = Settings.Current.CollapsedHeight;
         var m = App.Media.State;
-        if (MusicPlaying) w += Settings.Current.VisualizerStyle switch { VisualizerStyle.Off => 70, VisualizerStyle.Dots => 40, _ => 130 };
+        if (MusicPlaying) w += IsNotch ? 130 : Settings.Current.VisualizerStyle switch { VisualizerStyle.Off => 70, VisualizerStyle.Dots => 40, _ => 130 };
         if (_callStart != null) w += 40;
         if (_timerEnd != null) w += 30;
         if (RecPill?.Visibility == Visibility.Visible) w += 70;
@@ -634,7 +636,7 @@ public partial class IslandWindow : Window
     // Hover, click and drag onto the island
     // =====================================================================
 
-    private void Island_MouseEnter(object sender, MouseEventArgs e)
+    private void Island_MouseEnter(object sender, MouseEventArgs? e)
     {
         _collapseDelay.Stop();
         if (_mode != Mode.Expanded && _mode != Mode.Strip)
@@ -644,10 +646,49 @@ public partial class IslandWindow : Window
         }
     }
 
-    private void Island_MouseLeave(object sender, MouseEventArgs e)
+    private void Island_MouseLeave(object sender, MouseEventArgs? e)
     {
         _expandDelay.Stop();
-        if (_mode == Mode.Expanded) _collapseDelay.Start();
+        if (_mode == Mode.Expanded) { _collapseDelay.Stop(); _collapseDelay.Start(); }
+    }
+
+    private bool _cursorInside;
+
+    /// <summary>
+    /// Hover from the real cursor position, every tick. WPF's enter/leave events get lost when the
+    /// window resizes under the mouse or isn't focused, which left the island stuck open or closed.
+    /// </summary>
+    private void HoverTick()
+    {
+        if (_hiddenByUser || Island.Visibility != Visibility.Visible || _mode is Mode.Hidden or Mode.Strip)
+        {
+            _cursorInside = false;
+            return;
+        }
+        var inside = CursorOverIsland();
+        if (inside == _cursorInside)
+        {
+            // Missed leave: open, mouse away, nothing counting down.
+            if (!inside && _mode == Mode.Expanded && !_collapseDelay.IsEnabled) _collapseDelay.Start();
+            return;
+        }
+        _cursorInside = inside;
+        if (inside) Island_MouseEnter(this, null);
+        else Island_MouseLeave(this, null);
+    }
+
+    /// <summary>Whether the cursor is over the island's current shape (a few pixels of slack; notch reaches the top edge).</summary>
+    private bool CursorOverIsland()
+    {
+        if (!IsLoaded || Island.ActualWidth <= 0 || PresentationSource.FromVisual(Island) == null) return false;
+        Native.GetCursorPos(out var pt);
+        var scale = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+        var tl = Island.PointToScreen(new Point(0, 0));
+        var slack = 4 * scale;
+        var top = tl.Y - slack;
+        if (IsNotch || _mode == Mode.Expanded) top = Math.Min(top, TargetScreen().Bounds.Top);
+        return pt.X >= tl.X - slack && pt.X <= tl.X + Island.ActualWidth * scale + slack
+            && pt.Y >= top && pt.Y <= tl.Y + Island.ActualHeight * scale + slack;
     }
 
     private void Island_Click(object sender, MouseButtonEventArgs e)
@@ -742,7 +783,7 @@ public partial class IslandWindow : Window
         }
 
         // Compact: stay while the mouse is on or near the pill, or music keeps it out.
-        if (near || Island.IsMouseOver || StickyVisible)
+        if (near || CursorOverIsland() || StickyVisible)
         {
             _outsideSince = DateTime.MaxValue;
             return;
@@ -788,6 +829,7 @@ public partial class IslandWindow : Window
     private void StartGlance()
     {
         if (_mode is not (Mode.Compact or Mode.Hidden) || _hiddenByUser || _hiddenForFullscreen) return;
+        if (MusicPlaying) return; // music owns the pill: no CPU / GPU / RAM over it
         _mode = Mode.Glance;
         _gpuTemp = App.Game.GpuTemp();
         _cpuTemp = App.Game.CpuTemp();
@@ -1052,6 +1094,7 @@ public partial class IslandWindow : Window
 
         // Music started or stopped without a media-session event (players that don't report to Windows).
         var music = MusicPlaying;
+        if (music && _mode == Mode.Glance) EndGlance();
         if (music != _lastMusic)
         {
             _lastMusic = music;
@@ -1282,9 +1325,15 @@ public partial class IslandWindow : Window
         var m = App.Media.State;
         var playing = MusicPlaying;
         var style = Settings.Current.VisualizerStyle;
+        // Notch while playing: cover on the left, bars fill the rest, nothing else.
+        var notchPlaying = playing && IsNotch;
+        if (notchPlaying) style = VisualizerStyle.Bars;
         var dots = playing && style == VisualizerStyle.Dots;
         var showViz = playing && style is VisualizerStyle.Bars or VisualizerStyle.BarsWithTitle;
-        var vizOnly = showViz && style == VisualizerStyle.Bars;
+        var vizOnly = showViz && style == VisualizerStyle.Bars && !notchPlaying;
+        Grid.SetColumn(Viz, notchPlaying ? 1 : 0);
+        Grid.SetColumnSpan(Viz, notchPlaying ? 2 : 3);
+        Viz.Margin = notchPlaying ? new Thickness(8, 8, 2, 8) : new Thickness(4, 7, 4, 7);
         var compactVisible = _mode == Mode.Compact && Island.Visibility == Visibility.Visible;
 
         Viz.Mirrored = Settings.Current.VisualizerMirrored;
@@ -1305,7 +1354,8 @@ public partial class IslandWindow : Window
         CompactArtBox.Visibility = art ? Visibility.Visible : Visibility.Collapsed;
         CompactIcon.Visibility = art || vizOnly ? Visibility.Collapsed : Visibility.Visible;
         // Dot style keeps the pill clean: artwork on the left, dots on the right, nothing in between.
-        CompactText.Visibility = vizOnly || (dots && art) ? Visibility.Hidden : Visibility.Visible;
+        CompactText.Visibility = vizOnly || notchPlaying || (dots && art) ? Visibility.Hidden : Visibility.Visible;
+        CompactRight.Visibility = notchPlaying ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void ApplyMedia(MediaInfo m)
