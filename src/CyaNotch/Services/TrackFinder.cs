@@ -25,6 +25,7 @@ public sealed class TrackExtra
     public string? Title { get; init; }
     public string? Artist { get; init; }
     public string Source { get; init; } = "";
+    public bool IsVideo { get; init; }
 }
 
 /// <summary>
@@ -62,6 +63,11 @@ public static partial class TrackFinder
     private static readonly HashSet<string> MediaExts = new(StringComparer.OrdinalIgnoreCase)
     {
         ".mp3", ".flac", ".m4a", ".aac", ".wav", ".ogg", ".opus", ".wma", ".alac", ".ape", ".aiff", ".aif",
+        ".mp4", ".mkv", ".webm", ".avi", ".mov", ".wmv", ".m4v", ".ts",
+    };
+
+    private static readonly HashSet<string> VideoExts = new(StringComparer.OrdinalIgnoreCase)
+    {
         ".mp4", ".mkv", ".webm", ".avi", ".mov", ".wmv", ".m4v", ".ts",
     };
 
@@ -142,7 +148,9 @@ public static partial class TrackFinder
             catch { /* no tags */ }
 
             BitmapImage? art = null;
-            using (var thumb = await file.GetThumbnailAsync(ThumbnailMode.MusicView, 300, ThumbnailOptions.UseCurrentScale))
+            // Videos (not music) use a frame from the video as their cover.
+            var video = VideoExts.Contains(Path.GetExtension(path));
+            using (var thumb = await file.GetThumbnailAsync(video ? ThumbnailMode.VideosView : ThumbnailMode.MusicView, 300, ThumbnailOptions.UseCurrentScale))
             {
                 // Type "Icon" is Windows' generic note: the file has no picture of its own.
                 if (thumb != null && thumb.Type == ThumbnailType.Image)
@@ -152,7 +160,7 @@ public static partial class TrackFinder
                 }
             }
             art ??= FolderCover(Path.GetDirectoryName(path));
-            return new TrackExtra { Art = art, Title = title, Artist = artist, Source = "file" };
+            return new TrackExtra { Art = art, Title = title, Artist = artist, Source = "file", IsVideo = video };
         }
         catch (Exception ex)
         {
@@ -296,7 +304,7 @@ public static partial class TrackFinder
         TrackExtra? result = null;
         try
         {
-            result = await ITunesAsync(t, a) ?? await DeezerAsync(t, a);
+            result = await SpotifyAsync(t, a) ?? await ITunesAsync(t, a) ?? await DeezerAsync(t, a);
         }
         catch (Exception ex)
         {
@@ -320,6 +328,67 @@ public static partial class TrackFinder
             if (ta == wa) score += 3; else if (ta.Contains(wa) || wa.Contains(ta)) score += 2; else score -= 2;
         }
         return score;
+    }
+
+    // Spotify needs an app key: the person's own free one from developer.spotify.com (client credentials).
+    private static string _spotifyToken = "";
+    private static DateTime _spotifyExpires;
+    private static string _spotifyFor = "";
+
+    private static async Task<string?> SpotifyTokenAsync()
+    {
+        var id = Settings.Current.SpotifyClientId.Trim();
+        var secret = Settings.Current.SpotifySecret.Trim();
+        if (id.Length == 0 || secret.Length == 0) return null;
+        if (_spotifyFor == id && DateTime.UtcNow < _spotifyExpires) return _spotifyToken;
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://accounts.spotify.com/api/token")
+        {
+            Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["grant_type"] = "client_credentials" }),
+        };
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
+            Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(id + ":" + secret)));
+        using var resp = await Http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode)
+        {
+            Log.Info($"Spotify sign-in failed ({(int)resp.StatusCode}). Check the client ID and secret in Settings.");
+            return null;
+        }
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        _spotifyToken = Str(doc.RootElement, "access_token");
+        _spotifyExpires = DateTime.UtcNow.AddSeconds(doc.RootElement.GetProperty("expires_in").GetInt32() - 60);
+        _spotifyFor = id;
+        return _spotifyToken;
+    }
+
+    /// <summary>Checks the Spotify keys from Settings; null when they work, otherwise what's wrong.</summary>
+    public static async Task<string?> TestSpotifyAsync()
+    {
+        _spotifyFor = "";
+        lock (OnlineCache) OnlineCache.Clear(); // songs that found nothing before get another try
+        try { return await SpotifyTokenAsync() == null ? "Spotify didn't accept these keys." : null; }
+        catch (Exception ex) { return "Couldn't reach Spotify: " + ex.Message; }
+    }
+
+    private static async Task<TrackExtra?> SpotifyAsync(string title, string artist)
+    {
+        var token = await SpotifyTokenAsync();
+        if (token == null) return null;
+        var q = artist.Length > 0 ? $"track:{title} artist:{artist}" : title;
+        using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.spotify.com/v1/search?type=track&limit=8&q=" + Uri.EscapeDataString(q));
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var resp = await Http.SendAsync(req);
+        if (!resp.IsSuccessStatusCode) return null;
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        if (!doc.RootElement.TryGetProperty("tracks", out var tracks) || !tracks.TryGetProperty("items", out var items)) return null;
+        static string FirstArtist(JsonElement t) =>
+            t.TryGetProperty("artists", out var a) && a.GetArrayLength() > 0 ? Str(a[0], "name") : "";
+        var best = items.EnumerateArray()
+            .Select(t => (t, s: Score(title, artist, Str(t, "name"), FirstArtist(t))))
+            .Where(x => x.s >= 2).OrderByDescending(x => x.s).Select(x => (JsonElement?)x.t).FirstOrDefault();
+        if (best is not { } b || !b.TryGetProperty("album", out var album) || !album.TryGetProperty("images", out var imgs) || imgs.GetArrayLength() == 0)
+            return null;
+        var art = await DownloadAsync(Str(imgs[0], "url")); // largest first (640 px)
+        return art == null ? null : new TrackExtra { Art = art, Title = Str(b, "name"), Artist = FirstArtist(b), Source = "Spotify" };
     }
 
     private static async Task<TrackExtra?> ITunesAsync(string title, string artist)

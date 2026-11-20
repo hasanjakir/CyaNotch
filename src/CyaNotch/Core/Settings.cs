@@ -136,6 +136,14 @@ public sealed class Settings
     /// <summary>Show a soft blur of the artwork behind the pill and the music card.</summary>
     /// <summary>Look up covers the player doesn't provide (iTunes / Deezer catalogues).</summary>
     public bool OnlineArtwork { get; set; } = true;
+    /// <summary>Your own free Spotify developer app, for covers from Spotify's catalogue (optional).</summary>
+    public string SpotifyClientId { get; set; } = "";
+    [JsonIgnore] public string SpotifySecret
+    {
+        get => Secret.Unprotect(SpotifySecretProtected);
+        set => SpotifySecretProtected = Secret.Protect(value);
+    }
+    public string SpotifySecretProtected { get; set; } = "";
     public bool AmbientArtwork { get; set; } = true;
     public bool VisualizerMirrored { get; set; } = true;
     /// <summary>Hide the island until the mouse touches the top edge.</summary>

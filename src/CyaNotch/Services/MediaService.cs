@@ -272,7 +272,8 @@ public sealed class MediaService
             try
             {
                 if (w != null) x = await TrackFinder.FromFileAsync(w);
-                if (x?.Art == null && Settings.Current.OnlineArtwork)
+                // A video with no frame thumbnail isn't a song to look up.
+                if (x?.Art == null && x?.IsVideo != true && Settings.Current.OnlineArtwork)
                 {
                     var o = await TrackFinder.OnlineAsync(x?.Title ?? title, x?.Artist ?? artist);
                     if (o != null)

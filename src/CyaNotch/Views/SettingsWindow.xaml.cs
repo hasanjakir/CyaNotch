@@ -78,6 +78,9 @@ public partial class SettingsWindow : Window
         ArtColorsBox.IsChecked = s.ArtworkColors;
         AmbientBox.IsChecked = s.AmbientArtwork;
         OnlineArtBox.IsChecked = s.OnlineArtwork;
+        SpotifyId.Text = s.SpotifyClientId;
+        if (s.SpotifySecretProtected.Length > 0) SpotifySecretBox.Password = s.SpotifySecret;
+        if (s.SpotifyClientId.Length > 0 && s.SpotifySecretProtected.Length > 0) SpotifyStatus.Text = "Set up: Spotify is asked first.";
         VizMirror.IsChecked = s.VisualizerMirrored;
         ProgWave.IsChecked = s.ProgressStyle == ProgressStyle.Wave;
         ProgLine.IsChecked = s.ProgressStyle == ProgressStyle.Line;
@@ -426,6 +429,28 @@ public partial class SettingsWindow : Window
         PvViz.Visibility = VizOff?.IsChecked == true ? Visibility.Hidden : Visibility.Visible;
         PvViz.Mirrored = VizMirror?.IsChecked == true;
         PvViz.Active = !open;
+    }
+
+    private async void SaveSpotify_Click(object sender, RoutedEventArgs e)
+    {
+        Settings.Current.SpotifyClientId = SpotifyId.Text.Trim();
+        Settings.Current.SpotifySecret = SpotifySecretBox.Password.Trim();
+        Settings.Save();
+        if (Settings.Current.SpotifyClientId.Length == 0)
+        {
+            SpotifyStatus.Text = "Not set up: covers come from iTunes and Deezer.";
+            return;
+        }
+        SpotifyStatus.Text = "Checking with Spotify…";
+        var problem = await TrackFinder.TestSpotifyAsync();
+        SpotifyStatus.Text = problem ?? "Connected. Spotify is asked first for covers.";
+    }
+
+    private void Link_Navigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); }
+        catch { }
+        e.Handled = true;
     }
 
     private async void SetCity_Click(object sender, RoutedEventArgs e)
