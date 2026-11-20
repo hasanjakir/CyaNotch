@@ -130,7 +130,7 @@ public static partial class TrackFinder
         _lastDir = Path.GetDirectoryName(path);
         try
         {
-            var file = await StorageFile.GetFromPathAsync(path);
+            var file = await StorageFile.GetFileFromPathAsync(path);
             string? title = null, artist = null;
             try
             {
@@ -202,7 +202,7 @@ public static partial class TrackFinder
         dirs.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos));
         dirs.Add(Path.Combine(home, "OneDrive", "Music"));
 
-        var opts = new EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true, MaxRecursionDepth = 5 };
+        var opts = new System.IO.EnumerationOptions { IgnoreInaccessible = true, RecurseSubdirectories = true, MaxRecursionDepth = 5 };
         foreach (var d in dirs.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             try
