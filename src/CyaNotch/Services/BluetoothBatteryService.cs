@@ -76,7 +76,7 @@ public sealed class BluetoothBatteryService
     private void Watch(string selector, bool le)
     {
         var w = DeviceInformation.CreateWatcher(selector, new[] { ContainerKey, "System.Devices.Aep.IsConnected" }, DeviceInformationKind.AssociationEndpoint);
-        w.Added += (_, info) => _ = OnAddedAsync(info, le);
+        w.Added += (sender, info) => { var task = OnAddedAsync(info, le); };
         w.Removed += (_, upd) => { lock (_devices) _devices.Remove(upd.Id); Changed?.Invoke(); };
         w.Updated += (_, upd) =>
         {
