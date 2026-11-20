@@ -421,6 +421,7 @@
                         </StackPanel>
                     </Border>
                     <CheckBox x:Name="ArtColorsBox" Content="Colour from the artwork" Tag="The visualizer and progress take the song cover's colour." Click="Changed"/>
+                    <CheckBox x:Name="OnlineArtBox" Content="Find missing covers" Tag="When a player doesn't share the album cover, CyaNotch reads it from the music file, or looks the song up in the iTunes and Deezer catalogues (only the song name is sent)."  Click="Changed"/>
                     <CheckBox x:Name="AmbientBox" Content="Artwork glow" Tag="A soft blur of the cover behind the island on dark surfaces." Click="Changed"/>
                     <TextBlock Style="{StaticResource Group}" Text="MUSIC"/>
                     <Border Style="{StaticResource Row}">

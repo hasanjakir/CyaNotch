@@ -134,6 +134,8 @@ public sealed class Settings
     /// <summary>Tint the visualizer and progress line with a colour from the song's artwork.</summary>
     public bool ArtworkColors { get; set; } = true;
     /// <summary>Show a soft blur of the artwork behind the pill and the music card.</summary>
+    /// <summary>Look up covers the player doesn't provide (iTunes / Deezer catalogues).</summary>
+    public bool OnlineArtwork { get; set; } = true;
     public bool AmbientArtwork { get; set; } = true;
     public bool VisualizerMirrored { get; set; } = true;
     /// <summary>Hide the island until the mouse touches the top edge.</summary>

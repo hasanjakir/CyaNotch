@@ -77,6 +77,7 @@ public partial class SettingsWindow : Window
         VizDots.IsChecked = s.VisualizerStyle == VisualizerStyle.Dots;
         ArtColorsBox.IsChecked = s.ArtworkColors;
         AmbientBox.IsChecked = s.AmbientArtwork;
+        OnlineArtBox.IsChecked = s.OnlineArtwork;
         VizMirror.IsChecked = s.VisualizerMirrored;
         ProgWave.IsChecked = s.ProgressStyle == ProgressStyle.Wave;
         ProgLine.IsChecked = s.ProgressStyle == ProgressStyle.Line;
@@ -251,6 +252,7 @@ public partial class SettingsWindow : Window
                           : VizDots.IsChecked == true ? VisualizerStyle.Dots : VisualizerStyle.Bars;
         s.ArtworkColors = ArtColorsBox.IsChecked == true;
         s.AmbientArtwork = AmbientBox.IsChecked == true;
+        s.OnlineArtwork = OnlineArtBox.IsChecked == true;
         s.VisualizerMirrored = VizMirror.IsChecked == true;
         s.ProgressStyle = ProgLine.IsChecked == true ? ProgressStyle.Line
                         : ProgBar.IsChecked == true ? ProgressStyle.Bar
