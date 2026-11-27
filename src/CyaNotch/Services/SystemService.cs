@@ -173,8 +173,7 @@ public sealed class SystemService
     public static void OpenFocus() => OpenSettings("focus");
 
     // ---------- Night light ----------
-    // Windows keeps Night light's on/off state in a CloudStore blob. Flipping the state byte (and the
-    // two bytes that go with it) and bumping the blob's timestamp makes Windows apply it right away.
+    // Windows keeps Night light's on/off state in a CloudStore blob. We only read it.
 
     private const string NightLightKey =
         @"Software\Microsoft\Windows\CurrentVersion\CloudStore\Store\DefaultAccount\Current\default$windows.data.bluelightreduction.bluelightreductionstate\windows.data.bluelightreduction.bluelightreductionstate";
@@ -191,43 +190,11 @@ public sealed class SystemService
         catch { return null; }
     }
 
-    /// <summary>Turns Night light on or off. False if it couldn't (then open Settings instead).</summary>
-    public bool SetNightLight(bool on)
-    {
-        try
-        {
-            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(NightLightKey, writable: true);
-            if (key?.GetValue("Data") is not byte[] data || data.Length < 24) return false;
-            var isOn = data[18] == 0x15;
-            if (isOn == on) return true;
-            byte[] next;
-            if (on)
-            {
-                next = new byte[data.Length + 2];
-                Array.Copy(data, 0, next, 0, 22);
-                next[22] = 0x10;
-                next[23] = 0x00;
-                Array.Copy(data, 22, next, 24, data.Length - 22);
-                next[18] = 0x15;
-            }
-            else
-            {
-                next = new byte[data.Length - 2];
-                Array.Copy(data, 0, next, 0, 22);
-                Array.Copy(data, 24, next, 22, data.Length - 24);
-                next[18] = 0x13;
-            }
-            for (var i = 10; i < 15; i++)
-                if (next[i] != 0xFF) { next[i]++; break; }
-            key.SetValue("Data", next, Microsoft.Win32.RegistryValueKind.Binary);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Log.Error("Night light failed", ex);
-            return false;
-        }
-    }
+    /// <summary>
+    /// Always false: the island opens Windows' Night light settings instead. Editing Windows' private
+    /// Night light record by hand could leave it unreadable, which greys out Night light in Quick Settings.
+    /// </summary>
+    public bool SetNightLight(bool on) => false;
 
     // ---------- Do not disturb ----------
     // The global "show notifications" switch. Off means Windows keeps banners quiet (Do not disturb).
